@@ -9,7 +9,7 @@ FLAG_DEBUG = 0
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
-CFLAGS = f"-I {SRC_PATH} -g -export-dynamic" + ("" if not FLAG_DEBUG else " -D DEBUG")
+CFLAGS = f"-I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
 LFLAGS = "-lraylib -lGL -lm -lpthread -ldl -lrt -lX11 `pkg-config --cflags --libs gtk+-2.0` -L lib -lnfd"
 OBJ_PATH = "temp"
 BIN = "bin/aac" # Bin path is deduced from this.
@@ -83,7 +83,8 @@ def run_example():
 def debugging(tool: str):
 	match tool:
 		case "valgrind" | "mem" | "v":
-			if code := shell(f"valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s -- {BIN} examples/test.da"):
+			LEAK_CHECK = "--leak-check=full --show-leak-kinds=all"
+			if code := shell(f"valgrind -s -- {BIN}"):
 				yeet(code)
 		# add more tools here
 		case _:

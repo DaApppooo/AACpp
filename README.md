@@ -26,7 +26,18 @@ to fix some problems with raylib. To ask for files,
 ## Usage
 
 First step is to create your own board set on
-[Board Builder](https://app.globalsymbols.com/en/). Then, export it with the
+[Board Builder](https://app.globalsymbols.com/en/). This program supports most
+of Board Builder features, except (for now) border color, background color and
+custom label position.
+
+> [!CAUTION]
+> Make sure the cells/buttons that are linked to another board have the exact
+> same name as the board they're linked to. This is because Board Builder
+> does not support proper board linkage in the `.obz` format. So this should be
+> temporary. I sent them an email about this, hoping this will be fixed soon
+> enough.
+
+When your board is done, export it with the
 `.obz` format:
 
 [!Clicking on the "Download Board set as OBZ"](doc/tuto0.png)

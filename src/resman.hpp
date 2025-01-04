@@ -1,10 +1,13 @@
 #ifndef H_RESMAN
 #define H_RESMAN
+#define NO_CLAY
+#include "clay.h"
 #include "list.hpp"
 #include <raylib.h>
 
 using String = list<char>;
 extern list<Texture> texs;
+extern Clay_TextElementConfig font;
 
 using board_index_t = uint32_t;
 using opt_board_index_t = int32_t;

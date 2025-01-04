@@ -1,11 +1,17 @@
 #include "resman.hpp"
 #include "board.hpp"
+#include "list.hpp"
+#define NO_CLAY
+#include "clay.h"
 #include <cstdlib>
 #include <raylib.h>
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#include "rlclay.h"
 
 list<Texture> texs;
 list<Board> boards;
+Clay_TextElementConfig font;
 
 void TextureDumpLoad(Texture& tex, Stream s)
 {
@@ -55,7 +61,10 @@ Board& board_with_index(board_index_t bi)
 
 int init_res(Ref<Stream> s)
 {
+  assert(sizeof(isize)==8);
   isize tex_count, board_count;
+
+  Raylib_fonts[0].font = LoadFont("res/font.ttf");
   
   texs.init();
   boards.init();
@@ -83,6 +92,10 @@ int init_res(Ref<Stream> s)
 
 void destroy_res()
 {
+  UnloadFont(Raylib_fonts[0].font);
+  for (int i = 0; i < texs.len(); i++) {
+    UnloadTexture(texs[i]);
+  }
   texs.destroy();
   boards.destroy();
 }

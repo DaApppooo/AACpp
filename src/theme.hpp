@@ -1,3 +1,6 @@
+#ifndef H_THEME
+#define H_THEME
+#define NO_CLAY
 #include "clay.h"
 
 namespace theme
@@ -21,4 +24,4 @@ inline constexpr Clay_Sizing clay_size(int w, int h)
 }
 
 // shouldn't be there
-
+#endif // H_THEME

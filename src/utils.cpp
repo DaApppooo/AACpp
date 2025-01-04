@@ -1,8 +1,19 @@
 #include "utils.hpp"
 #include "nfd.h"
+#include <filesystem>
 
 float XMAX, YMAX;
-Clay_TextElementConfig font;
+
+long FileEditTime(const char* filename)
+{
+  // i swear, the globglobgabgalab is one of the prettiest princess in
+  //  comparison to c++
+  const auto ft = 
+    std::filesystem::last_write_time(filename);
+  return ft.time_since_epoch().count();
+  // here we have no idea what unit is used bcz ofc it's not even specified in
+  //  the doc...
+}
 
 namespace ctrl
 {
@@ -124,7 +135,7 @@ const char* tts_fill_final_buffer()
   TTS_MSG_FINAL[bi] = 0;
   return TTS_MSG_FINAL;
 }
-
+void destroy_tts() {}
 #endif
 
 void say_board()

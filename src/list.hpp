@@ -706,8 +706,11 @@ inline char list<char>::pop() {
 }
 
 inline Self& list<char>::prealloc(isize size) {
-	const isize _len = len();
-	assertm(_cap == 0 && _len == 0, "List is already set: cannot prealloc.");
+  if (is_owned())
+  {
+  	const isize _len = len();
+  	assertm(_cap == 0 && _len == 0, "List is already set: cannot prealloc.");
+	}
 	_cap = size;
 	_data = (char*)malloc(sizeof(char)*(_cap+1));
 	memset(_data, 0, sizeof(char)*(_cap+1));

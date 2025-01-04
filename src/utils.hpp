@@ -1,5 +1,4 @@
 #pragma once
-#include "clay.h"
 #include <cstdlib>
 #include <cstring>
 #include <raylib.h>
@@ -8,6 +7,8 @@
 #define H_UTILS
 
 #define todo() dblog(LOG_FATAL, "TODO REACHED %s:%i", __FILE__, __LINE__); abort()
+
+long FileEditTime(const char* filename);
 
 const char* open_file_dialogue();
 void init_tts();
@@ -56,8 +57,7 @@ struct Stream
 using fvec2 = Vector2;
 
 extern bool edit_mode;
-extern float XMAX, YMAX;
-extern Clay_TextElementConfig font;
+extern float XMAX, YMAX, dt;
 extern bool edit_mode;
 
 namespace ctrl

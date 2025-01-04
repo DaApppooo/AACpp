@@ -12,20 +12,10 @@ struct Board
   int layout_height;
   
   Cell* cells; // linrect layout (allocated size is width*height)
-
-  void init(opt_board_index_t parent, int w, int h)
-  {
-    layout_width = w;
-    layout_height = h;
-    cells = (Cell*)malloc(sizeof(Cell)*w*h);
-    for (int i = 0; i < layout_width * layout_height; i++)
-    {
-      cells[i].init(parent);
-    }
-  }
+  
   void serialize(Stream f);
   void deserialize(Stream f);
-  Board* update();
+  opt_board_index_t update();
   void draw();
   void destroy();
 };
