@@ -162,7 +162,20 @@ int main()
                 .layoutDirection = CLAY_LEFT_TO_RIGHT
           })
         ) {
-          // TODO: ADD BUTTONS
+          CLAY( // parent board icon
+            CLAY_RECTANGLE({.color={100, 110, 255}}),
+            CLAY_LAYOUT({
+              .sizing = theme::ICON_SIZE
+            })
+          ) {};
+          CLAY( // input text
+            CLAY_RECTANGLE({.color=theme::TEXT_FIELD_BG_COLOR}),
+            CLAY_LAYOUT({
+              .sizing = theme::GROW,
+            })
+          ) {
+            CLAY_TEXT({CLAY_STRING("test"), CLAY_TEXT_CONFIG(font)});
+          };
         };
         CLAY(
           CLAY_ID("content"),
