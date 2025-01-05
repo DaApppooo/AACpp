@@ -37,8 +37,16 @@ void Cell::draw(const Board& board, int x, int y) const
   // faster to recompute everytime
   const bool inbounds = CheckCollisionPointRec(ctrl::mpos, rect);
   DrawRectangleRec(
+    {
+      rect.x-theme::border_weight, rect.y-theme::border_weight,
+      rect.width + theme::border_weight*2.f,
+      rect.height + theme::border_weight*2.f
+    },
+    border // this is now default CLAY_COLOR_TO_RAYLIB_COLOR(theme::cell_color)
+  );
+  DrawRectangleRec(
     rect,
-    CLAY_COLOR_TO_RAYLIB_COLOR(theme::cell_color)
+    background // this is now default CLAY_COLOR_TO_RAYLIB_COLOR(theme::cell_color)
   );
   Vector2 txtm = {0.0f, theme::FONT_SIZE};
   if (str_len(name) != 0)
@@ -145,5 +153,7 @@ void Cell::deserialize(Stream f)
   name[l] = 0;
   parent = f.read<opt_board_index_t>();
   child = f.read<opt_board_index_t>();
+  background = f.read<Color>();
+  border = f.read<Color>();
 }
 

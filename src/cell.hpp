@@ -7,12 +7,14 @@ struct Board;
 
 struct Cell
 {
+  Rectangle rect;
   char* name;
   opt_board_index_t child;
   opt_board_index_t parent;
   int tex_id;
+  Color background;
+  Color border;
   bool spring;
-  Rectangle rect;
 
   inline bool is_folder() const
   {
