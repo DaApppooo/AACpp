@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include "nfd.h"
+#include <algorithm>
 #include <filesystem>
 
 float XMAX, YMAX;
@@ -87,9 +88,9 @@ void init_tts()
 void tts_push_word(const char* w)
 {
   const int len = str_len(w);
-  strncpy(TTS_MSG_BUILDER + TTS_POS, w, TTS_MSG_LEN - TTS_POS - 1);
+  memcpy(TTS_MSG_BUILDER + TTS_POS, w, std::min(TTS_MSG_LEN - TTS_POS - 1, len));
   TTS_POS += len;
-  TTS_MSG_BUILDER[len] = '\x01';
+  TTS_MSG_BUILDER[TTS_POS] = '\x01';
   TTS_POS++;
 }
 void tts_push_piece(const char* p)
@@ -97,11 +98,13 @@ void tts_push_piece(const char* p)
   const int len = str_len(p);
   strncpy(TTS_MSG_BUILDER + TTS_POS, p, TTS_MSG_LEN - TTS_POS - 1);
   TTS_POS += len;
-  TTS_MSG_BUILDER[len] = '\x02';
+  TTS_MSG_BUILDER[TTS_POS] = '\x02';
   TTS_POS++;
 }
 void tts_backspace()
 {
+  if (TTS_POS > 1)
+    TTS_POS -= 2;
   while (
      TTS_POS > 0
   && ! (
@@ -138,7 +141,7 @@ const char* tts_fill_final_buffer()
 void destroy_tts() {}
 #endif
 
-void say_board()
+void tts_play()
 {
   const int len = str_len(TTS_MSG_FINAL);
   if (len == 0)

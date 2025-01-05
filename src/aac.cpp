@@ -34,7 +34,7 @@ int main()
   {
     // SetConfigFlags(FLAG_FULLSCREEN_MODE);
     SetTargetFPS(30);
-    Clay_Raylib_Initialize(1600, 900, "aacpp", FLAG_WINDOW_RESIZABLE);
+    Clay_Raylib_Initialize(1600, 900, "aacpp", FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
   }
@@ -106,6 +106,14 @@ int main()
             7.5f,
             WHITE
           );
+          DrawCircleV(
+            {
+              XMAX/2.f + cosf(throbber_func(t*0.8f)*2.f*PI)*20.f,
+              2.f*YMAX/3.f + sinf(throbber_func(t*0.8f)*2.f*PI)*20.f
+            },
+            7.5f,
+            WHITE
+          );
         EndDrawing();
         dt = GetFrameTime();
         t += dt;
@@ -142,6 +150,7 @@ int main()
   while (!WindowShouldClose())
   {
     Clay_SetLayoutDimensions({XMAX, YMAX});
+    Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::mouse_down);
     Clay_BeginLayout();
 
       CLAY(
@@ -157,24 +166,56 @@ int main()
           CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
           CLAY_LAYOUT({
                 .sizing = theme::BAR_SIZE,
+                .padding = theme::gpad,
                 .childGap = 10,
                 .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
                 .layoutDirection = CLAY_LEFT_TO_RIGHT
           })
         ) {
           CLAY( // parent board icon
-            CLAY_RECTANGLE({.color={100, 110, 255}}),
+            CLAY_ID("btn_parent"),
+            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
             CLAY_LAYOUT({
               .sizing = theme::ICON_SIZE
-            })
+            }),
+            CLAY_IMAGE({btns+BTI_UP, theme::IMG_SCALE})
           ) {};
           CLAY( // input text
             CLAY_RECTANGLE({.color=theme::TEXT_FIELD_BG_COLOR}),
             CLAY_LAYOUT({
-              .sizing = theme::GROW,
+              .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)},
+              .padding = theme::gpad,
+              .childGap = 10,
+              .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_CENTER},
+              .layoutDirection = CLAY_LEFT_TO_RIGHT,
             })
           ) {
-            CLAY_TEXT({CLAY_STRING("test"), CLAY_TEXT_CONFIG(font)});
+            CLAY_TEXT(CLAY_STRING(tts_fill_final_buffer()), CLAY_TEXT_CONFIG(font));
+          };
+          CLAY( // backspace input icon
+            CLAY_ID("btn_backspace"),
+            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
+            CLAY_LAYOUT({
+              .sizing = theme::ICON_SIZE
+            }),
+            CLAY_IMAGE({btns+BTI_BACKSPACE, theme::IMG_SCALE})
+          ) {};
+          CLAY( // clear input icon
+            CLAY_ID("btn_clear"),
+            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
+            CLAY_LAYOUT({
+              .sizing = theme::ICON_SIZE
+            }),
+            CLAY_IMAGE({btns+BTI_CLEAR, theme::IMG_SCALE})
+          ) {};
+          CLAY( // play input icon
+            CLAY_ID("btn_play"),
+            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
+            CLAY_LAYOUT({
+              .sizing = theme::ICON_SIZE
+            }),
+            CLAY_IMAGE({btns+BTI_PLAY, theme::IMG_SCALE})
+          ) {
           };
         };
         CLAY(
@@ -193,13 +234,6 @@ int main()
         {
           // FUTURE: use clay grid layout system
         };
-        CLAY(
-          CLAY_ID("footer"),
-          CLAY_LAYOUT({
-                        .sizing = theme::BAR_SIZE,
-                      }),
-          CLAY_RECTANGLE({theme::TRANSPARENT_RECT})
-        ) {}
       }
 
     render_cmds = Clay_EndLayout();
@@ -217,6 +251,28 @@ int main()
     opt_new_board = board_with_index(current).update();
     if (is_board_index(opt_new_board))
       current = opt_new_board;
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    {
+      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_parent"))))
+      {
+        if (is_board_index(board_with_index(current).cells[0].parent))
+        {
+          current = board_with_index(current).cells[0].parent;
+        }
+      }
+      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_backspace"))))
+      {
+        tts_backspace();
+      }
+      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_clear"))))
+      {
+        tts_clear();
+      }
+      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_play"))))
+      {
+        tts_play();
+      }
+    }
   }
 
 SAFELY_EXIT:

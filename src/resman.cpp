@@ -1,6 +1,7 @@
 #include "resman.hpp"
 #include "board.hpp"
 #include "list.hpp"
+#include "theme.hpp"
 #define NO_CLAY
 #include "clay.h"
 #include <cstdlib>
@@ -12,6 +13,7 @@
 list<Texture> texs;
 list<Board> boards;
 Clay_TextElementConfig font;
+Texture btns[4];
 
 void TextureDumpLoad(Texture& tex, Stream s)
 {
@@ -59,12 +61,31 @@ opt_board_index_t board_index_from_pointer(const Board* const b)
 Board& board_with_index(board_index_t bi)
 { return boards[bi]; }
 
+extern 
+    Clay_Dimensions (*Clay__MeasureText)(
+                              Clay_String *text,
+                              Clay_TextElementConfig *config
+                            );
+
 int init_res(Ref<Stream> s)
 {
   assert(sizeof(isize)==8);
   isize tex_count, board_count;
 
-  Raylib_fonts[0].font = LoadFont("res/font.ttf");
+  Raylib_fonts[0].font = LoadFontEx("res/font.ttf", theme::FONT_SIZE*2, nullptr, -1);
+  font.fontId = 0;
+  font.fontSize = theme::FONT_SIZE;
+  font.letterSpacing = theme::TEXT_SPACING;
+  font.textColor = theme::text_color;
+  font.lineHeight = 1;
+  font.wrapMode = CLAY_TEXT_WRAP_NONE;
+  Clay__MeasureText = Raylib_MeasureText;
+
+
+  btns[BTI_BACKSPACE] = LoadTexture("res/kb.png");
+  btns[BTI_CLEAR] = LoadTexture("res/cl.png");
+  btns[BTI_PLAY] = LoadTexture("res/pa.png");
+  btns[BTI_UP] = LoadTexture("res/au.png");
   
   texs.init();
   boards.init();

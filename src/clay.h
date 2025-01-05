@@ -447,9 +447,11 @@ CLAY_API Clay_ScrollContainerData Clay_GetScrollContainerData(Clay_ElementId id)
 CLAY_API void Clay_SetMeasureTextFunction(Clay_Dimensions (*measureTextFunction)(Clay_String *text, Clay_TextElementConfig *config));
 CLAY_API Clay_RenderCommand * Clay_RenderCommandArray_Get(Clay_RenderCommandArray* array, int32_t index);
 CLAY_API void Clay_SetDebugModeEnabled(bool enabled);
+CLAY_API bool Clay_PointerOver(Clay_ElementId elementId);
 
 // Internal API functions required by macros
 CLAY_API void Clay__OpenElement();
+CLAY_API void Clay__OpenTextElement(Clay_String text, Clay_TextElementConfig *textConfig);
 CLAY_API void Clay__CloseElement();
 CLAY_API Clay_LayoutConfig * Clay__StoreLayoutConfig(Clay_LayoutConfig config);
 CLAY_API void Clay__ElementPostConfiguration();
@@ -3574,6 +3576,7 @@ CLAY_API void Clay_OnHover(void (*onHoverFunction)(Clay_ElementId elementId, Cla
     hashMapItem->hoverFunctionUserData = userData;
 }
 
+extern "C" {
 CLAY_WASM_EXPORT("Clay_PointerOver")
 CLAY_API bool Clay_PointerOver(Clay_ElementId elementId) { // TODO return priority for separating multiple results
     for (int i = 0; i < Clay__pointerOverIds.length; ++i) {
@@ -3582,6 +3585,7 @@ CLAY_API bool Clay_PointerOver(Clay_ElementId elementId) { // TODO return priori
         }
     }
     return false;
+}
 }
 
 CLAY_WASM_EXPORT("Clay_GetScrollContainerData")

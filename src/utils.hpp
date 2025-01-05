@@ -17,6 +17,7 @@ void tts_push_piece(const char* p); // doesn't add a space
 void tts_backspace(); // remove last pushed piece or word
 void tts_clear();
 const char* tts_fill_final_buffer();
+void tts_play();
 void destroy_tts();
 
 inline constexpr int str_len(const char* s)

@@ -8,6 +8,14 @@
 using String = list<char>;
 extern list<Texture> texs;
 extern Clay_TextElementConfig font;
+extern Texture btns[4];
+enum BtnRectId
+{
+  BTI_UP,
+  BTI_BACKSPACE,
+  BTI_CLEAR,
+  BTI_PLAY
+};
 
 using board_index_t = uint32_t;
 using opt_board_index_t = int32_t;

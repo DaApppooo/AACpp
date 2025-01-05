@@ -12,8 +12,9 @@ namespace theme
   // constexpr Clay_Color text_color = { 53, 53, 53, 255 };
   constexpr Clay_Sizing GROW = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() };
   // constexpr Clay_Sizing CELL_SIZE = { CLAY_SIZING_FIXED(345), CLAY_SIZING_FIXED(200) };
-  constexpr Clay_Sizing ICON_SIZE = { CLAY_SIZING_FIXED(150), CLAY_SIZING_FIXED(150) };
+  constexpr Clay_Sizing ICON_SIZE = { CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100) };
   constexpr Clay_Sizing BAR_SIZE = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(200) };
+  constexpr Clay_Dimensions IMG_SCALE = { 512.f, 512.f };
   constexpr Clay_RectangleElementConfig TRANSPARENT_RECT = { .color = { 0, 0, 0, 0 } };
   constexpr uint16_t gpad = 32; // Global padding
   constexpr uint16_t FONT_SIZE = 40;

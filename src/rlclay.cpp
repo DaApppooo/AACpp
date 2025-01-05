@@ -1,4 +1,5 @@
 #include "rlclay.h"
+#include "clay.h"
 
 Raylib_Font Raylib_fonts[10];
 Camera Raylib_camera;
