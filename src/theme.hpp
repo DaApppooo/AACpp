@@ -10,6 +10,7 @@ namespace theme
   constexpr Clay_Color text_color = { 242, 233, 228, 255 };
   constexpr uint16_t gpad = 32; // Global padding
   constexpr float border_weight = 2.f; // (must be less than gpad)
+  constexpr Clay_Color command_background = {100, 110, 255, 255};
   constexpr Clay_Color TEXT_FIELD_BG_COLOR = {117, 117, 117, 255};
   // constexpr Clay_Color text_color = { 53, 53, 53, 255 };
   constexpr Clay_Sizing GROW = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() };

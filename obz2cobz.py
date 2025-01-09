@@ -24,7 +24,10 @@ import io
 from tqdm import tqdm
 from time import sleep
 import traceback
+from configparser import ConfigParser
 
+DEFAULTS = ConfigParser()
+DEFAULTS.read('config/defaults.ini')
 SUPPORTED_IMAGE_FORMATS = ('png','jpg','jpeg','tga','bmp','psd','gif','hdr','pic','pnm')
 LEGACY_COLORS = {
 "AliceBlue":"#F0F8FF",
@@ -176,7 +179,7 @@ LEGACY_COLORS = {
 "Yellow":"#FFFF00",
 "YellowGreen":"#9ACD32"
 }
-LEGACY_COLORS = { k:pack('>i', v) for k,v in LEGACY_COLORS.items() }
+LEGACY_COLORS = { k:pack('>i', int(v[1:], 16)) for k,v in LEGACY_COLORS.items() }
 
 def expect(cond: bool, err_msg: str):
     if not cond:
@@ -222,13 +225,15 @@ class Cell:
         if self.name is None:
             self.name = ""
         return pack(
-            f'=3siq{len(self.name)}sii',
+            f'=3siq{len(self.name)}sii4B4B',
             b'CLL',
             self.tex_id,
             len(self.name),
             self.name.encode('ascii'),
             self.parent,
-            self.child
+            self.child,
+            *self.background,
+            *self.border
         )
 
 class Board:
@@ -258,7 +263,9 @@ def depercent(expr: str, max: float):
         return float(expr[:-1])/100.0 * max
     else:
         return float(expr)
-def parse_color(expr: str, default) -> bytes:
+def parse_color(expr: str | None, default) -> bytes:
+    if expr is None:
+        return default
     if expr.startswith('rgb(') and expr.endswith(')'):
         r,g,b = (int(depercent(i.strip())) for i in expr[4:-1].split(','))
         a = 255
@@ -394,7 +401,9 @@ def parse_board(
             c.obz_child_id = id
             # TODO: Add other ways to link boards
         if 'background_color' in b:
-            c.ob
+            c.background = parse_color(b['background_color'], DEFAULTS['cell']['background'])
+        if 'border_color' in b:
+            c.border = parse_color(b['border_color'], DEFAULTS['cell']['border'])
         c.name = b.get('label') # Not always specified
         c.obz_xy = find_position(c.obz_id, obf['grid']['order'])
         board.cells.append(c)

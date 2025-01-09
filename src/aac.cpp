@@ -174,7 +174,7 @@ int main()
         ) {
           CLAY( // parent board icon
             CLAY_ID("btn_parent"),
-            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
+            CLAY_RECTANGLE({.color=theme::command_background}),
             CLAY_LAYOUT({
               .sizing = theme::ICON_SIZE
             }),
@@ -194,7 +194,7 @@ int main()
           };
           CLAY( // backspace input icon
             CLAY_ID("btn_backspace"),
-            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
+            CLAY_RECTANGLE({.color=theme::command_background}),
             CLAY_LAYOUT({
               .sizing = theme::ICON_SIZE
             }),
@@ -202,7 +202,7 @@ int main()
           ) {};
           CLAY( // clear input icon
             CLAY_ID("btn_clear"),
-            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
+            CLAY_RECTANGLE({.color=theme::command_background}),
             CLAY_LAYOUT({
               .sizing = theme::ICON_SIZE
             }),
@@ -210,7 +210,7 @@ int main()
           ) {};
           CLAY( // play input icon
             CLAY_ID("btn_play"),
-            CLAY_RECTANGLE({.color={100, 110, 255, 255}}),
+            CLAY_RECTANGLE({.color=theme::command_background}),
             CLAY_LAYOUT({
               .sizing = theme::ICON_SIZE
             }),
