@@ -3,20 +3,22 @@
 
 An AAC (Augmentative and Alternative Communication) Board Player written in C++
 that's intended to work with [Board Builder](https://app.globalsymbols.com/en/)
-and other apps which export ".obz" files.
+and other apps which export ".obz" files. This app should be 100% free to all
+users, check out the license for more details.
 
 **This project isn't done**, but I'm actively working on it. When this project
 will be mostly done, check out
 [Releases](https://github.com/DaApppooo/AACpp/releases) to download and install
 it on your *Machine*. Check out [dependencies](#deps) if you want to
 try it out early. When the first release will come out, I'd like to have a
-linux, windows and android version available.
+linux, windows and android version available. **Once done** this project will
+continue to evolve with suggestion coming from users.
 
 Please note that I'm not a full-time AAC user (and I actually use aacs very
 rarely), so what I'm creating might not be adapted to your needs (and might
 even be unusable). If there's anything of that sort, or some feature you'd like
-me to implement, please post a [feature request](.) {i haven't made the issue
-template for now} explaining what you want or need.
+me to implement, please post a [feature request](https://github.com/DaApppooo/AACpp/issues/new?assignees=DaApppooo&labels=&projects=&template=feature-request.md&title=)
+explaining what you want or need.
 
 It uses [Raylib](https://github.com/raysan5/raylib/) for general window
 operations, input, etc..., mostly [Clay](https://github.com/nicbarker/clay) for
@@ -32,8 +34,8 @@ of Board Builder features, except (for now) border color, background color and
 custom label position.
 
 > [!CAUTION]
-> Make sure the cells/buttons that are linked to another board have the exact
-> same name as the board they're linked to. This is because Board Builder
+> Make sure the cells/buttons that are linked to another board **have the same
+> exact name as the board they're linked to**. This is because Board Builder
 > does not support proper board linkage in the `.obz` format. So this should be
 > temporary. I sent them an email about this, hoping this will be fixed soon
 > enough.
@@ -41,7 +43,7 @@ custom label position.
 When your board is done, export it with the
 `.obz` format:
 
-[!Clicking on the "Download Board set as OBZ"](doc/tuto0.png)
+![Clicking on the "Download Board set as OBZ"](doc/tuto0.png)
 
 Then launch this program. A file selection window should appear. Select the
 the file you just downloaded. After at most a few seconds of loading and
@@ -67,7 +69,7 @@ In order to build from source, you'll need a few things:
 
 > [!TIP]
 > To install the last release of clay and compile nativefiledialog for your
-  system you can simply run `deps.sh` if on linux or `deps.cmd` if on windows.
+  system you can simply run `make clean && make deps`.
 
 
 To run the program without simply unziping a release, you'll need:
@@ -77,13 +79,11 @@ To run the program without simply unziping a release, you'll need:
 - python 3
 - python [pillow](https://pypi.org/project/pillow/)
 
-
 ## What feature of `obz` is supported ?
 
-It's actually easier to say what isn't supported, yet:
-
-- Custom image and text position
-- ... (todo)
+Ideally, every feature of the `obz` file format + every custom feature Board
+Builder might offer. Feature requests will mostly help me know on which feature
+I should work in priority.
 
 <a name="qna">
 
