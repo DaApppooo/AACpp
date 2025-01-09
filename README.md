@@ -40,8 +40,7 @@ custom label position.
 > temporary. I sent them an email about this, hoping this will be fixed soon
 > enough.
 
-When your board is done, export it with the
-`.obz` format:
+When your board is done, download your board set as `OBZ`:
 
 ![Clicking on the "Download Board set as OBZ"](doc/tuto0.png)
 
@@ -72,18 +71,22 @@ In order to build from source, you'll need a few things:
   system you can simply run `make clean && make deps`.
 
 
-To run the program without simply unziping a release, you'll need:
+To run the program without installing a release, you'll need:
 
 - raylib dynamic library (referenced higher up in this document)
 - an adapted release of nativefiledialog compiled for your system
 - python 3
 - python [pillow](https://pypi.org/project/pillow/)
+- to declare a TTS environment variable on linux or on windows, that contains a
+  command which reads on the standard input the text to be said, and outputs as
+  audio what was said.
 
 ## What feature of `obz` is supported ?
 
 Ideally, every feature of the `obz` file format + every custom feature Board
 Builder might offer. Feature requests will mostly help me know on which feature
-I should work in priority.
+I should work in priority. Check out the [todo](https://github.com/users/DaApppooo/projects/1) to see how the project is
+going, and what you can contribute to if you want to.
 
 <a name="qna">
 
@@ -92,7 +95,7 @@ I should work in priority.
 > The program doesn't produce any sound.
 - It's most likely that your system doesn't have a default TTS client. In this
   case, if you're on linux or windows, you need to have a `TTS` environement
-  variable. For android, please file an [issue](https://github.com/DaApppooo/AACpp/issues/new?assignees=DaApppooo&labels=&projects=&template=bug--or-problem-with-default-behavior-in-general--report.md&title=)
+  variable. For android or iOS, please file an [issue](https://github.com/DaApppooo/AACpp/issues/new?assignees=DaApppooo&labels=&projects=&template=bug--or-problem-with-default-behavior-in-general--report.md&title=)
 
 > After fixing all of the above, it still doesn't work on my system.
 - Please take the time to write an
