@@ -77,6 +77,7 @@ To run the program without installing a release, you'll need:
 - an adapted release of nativefiledialog compiled for your system
 - python 3
 - python [pillow](https://pypi.org/project/pillow/)
+- python [cairosvg](https://cairosvg.org/)
 - to declare a TTS environment variable on linux or on windows, that contains a
   command which reads on the standard input the text to be said, and outputs as
   audio what was said.

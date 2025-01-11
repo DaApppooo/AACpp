@@ -65,14 +65,14 @@ const char* open_file_dialogue()
 
 constexpr int TTS_MSG_LEN = 2048;
 constexpr int TTS_CLI_LEN = 1024;
-char TTS_MSG_BUILDER[TTS_MSG_LEN];
+FixedString::Char TTS_MSG_BUILDER[TTS_MSG_LEN];
 int TTS_POS = 0;
 
-char TTS_MSG_FINAL[TTS_MSG_LEN];
+u8 TTS_MSG_FINAL[TTS_MSG_LEN];
 char TTS_CLI[TTS_CLI_LEN];
 void init_tts()
 {
-  memset(TTS_MSG_BUILDER, 0, sizeof(char)*2048);
+  memset(TTS_MSG_BUILDER, 0, sizeof(FixedString::Char)*2048);
   memset(TTS_CLI, 0, sizeof(char)*1024);
   const char* p = secure_getenv("TTS");
   if (p == nullptr)
@@ -85,20 +85,16 @@ void init_tts()
     TraceLog(LOG_INFO, "[TTS] Will use '%s' as input popened process for tts.", TTS_CLI);
   }
 }
-void tts_push_word(const char* w)
+void tts_push(FixedString& w)
 {
-  const int len = str_len(w);
-  memcpy(TTS_MSG_BUILDER + TTS_POS, w, std::min(TTS_MSG_LEN - TTS_POS - 1, len));
+  const int len = w.len();
+  memcpy(
+    TTS_MSG_BUILDER + TTS_POS,
+    w._data,
+    sizeof(FixedString::Char)*std::min(TTS_MSG_LEN - TTS_POS - 1, len)
+  );
   TTS_POS += len;
   TTS_MSG_BUILDER[TTS_POS] = '\x01';
-  TTS_POS++;
-}
-void tts_push_piece(const char* p)
-{
-  const int len = str_len(p);
-  strncpy(TTS_MSG_BUILDER + TTS_POS, p, TTS_MSG_LEN - TTS_POS - 1);
-  TTS_POS += len;
-  TTS_MSG_BUILDER[TTS_POS] = '\x02';
   TTS_POS++;
 }
 void tts_backspace()
@@ -107,10 +103,7 @@ void tts_backspace()
     TTS_POS -= 2;
   while (
      TTS_POS > 0
-  && ! (
-       TTS_MSG_BUILDER[TTS_POS] == '\x01'
-    || TTS_MSG_BUILDER[TTS_POS] == '\x02'
-       )
+  && TTS_MSG_BUILDER[TTS_POS] != '\x01'
   ) {
       TTS_POS--;
   }
@@ -119,20 +112,41 @@ void tts_clear()
 {
   TTS_POS = 0;
 }
-const char* tts_fill_final_buffer()
+
+// fixed 4 byte "utf8" to real utf8
+const u8* tts_fill_final_buffer()
 {
+  constexpr int UTF8_CHECK_BIT = 1 << 7;
   int bi = 0;
   for (int i = 0; i < TTS_POS; i++)
   {
     if (TTS_MSG_BUILDER[i] == '\x01')
-    {
-      TTS_MSG_FINAL[bi++] = ' ';
-    }
-    else if (TTS_MSG_BUILDER[i] == '\x02')
-    {  }
+    { }
     else
     {
-      TTS_MSG_FINAL[bi++] = TTS_MSG_BUILDER[i];
+      const int c = TTS_MSG_BUILDER[i];
+      if (!((c >> 0) & UTF8_CHECK_BIT))
+      {
+        TTS_MSG_FINAL[bi++] = c; // simple cast
+      }
+      else if (!((c >> 8) & UTF8_CHECK_BIT))
+      {
+        TTS_MSG_FINAL[bi++] = c & ~UTF8_CHECK_BIT;
+        TTS_MSG_FINAL[bi++] = c >> 8; // +2nd byte cast
+      }
+      else if (!((c >> 16) & UTF8_CHECK_BIT))
+      {
+        TTS_MSG_FINAL[bi++] = c & ~UTF8_CHECK_BIT;
+        TTS_MSG_FINAL[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
+        TTS_MSG_FINAL[bi++] = c >> 16;
+      }
+      else
+      {
+        TTS_MSG_FINAL[bi++] = c & ~UTF8_CHECK_BIT;
+        TTS_MSG_FINAL[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
+        TTS_MSG_FINAL[bi++] = (c >> 16) & ~UTF8_CHECK_BIT;
+        TTS_MSG_FINAL[bi++] = c >> 24;
+      }
     }
   }
   TTS_MSG_FINAL[bi] = 0;
@@ -143,11 +157,11 @@ void destroy_tts() {}
 
 void tts_play()
 {
-  const int len = str_len(TTS_MSG_FINAL);
+  const int len = str_len((const char*)TTS_MSG_FINAL) / sizeof(FixedString::Char);
   if (len == 0)
     return;
   FILE* p = popen(TTS_CLI, "w");
-  fwrite(TTS_MSG_FINAL, sizeof(char)*(len+1), 1, p);
+  fwrite(TTS_MSG_FINAL, sizeof(u8)*(len+1), 1, p);
   fclose(p);
 }
 

@@ -1,4 +1,7 @@
 #pragma once
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <raylib.h>
@@ -8,15 +11,87 @@
 
 #define todo() dblog(LOG_FATAL, "TODO REACHED %s:%i", __FILE__, __LINE__); abort()
 
+using u8 = uint8_t;
+using u64 = uint64_t;
+using i64 = int64_t;
+
+inline void memcpy_lin(
+  void* const dst, int dst_a,
+  const void* const src, int src_a,
+  int count
+) {
+  u8 *dst_ = (u8*)dst,
+     *src_ = (u8*)src;
+  for (int i = 0; i < count; i++)
+  {
+    int b;
+    for (b = 0; b < std::min(dst_a, src_a); b++)
+    {
+      *dst_ = *src_;
+    }
+    for (; b < std::max(dst_a, src_a); b++)
+    {
+      *dst_ = 0;
+    }
+    dst_ += dst_a;
+    src_ += src_a;
+  }
+}
+
+struct FixedString
+{
+  using Char = int;
+  u64 _len;
+  Char* _data;
+  inline i64 len()
+  {
+    return _len;
+  }
+  inline i64 mem_size()
+  {
+    return sizeof(Char)*_len;
+  }
+  inline void deserialize(FILE* f)
+  {
+    fread(&_len, sizeof(u64), 1, f);
+    _data = (Char*)malloc(sizeof(Char)*_len);
+    fread(_data, _len, 1, f);
+  }
+  inline void to_ascii_buffer(char* buff, u64 max_len, char err)
+  {
+    int i;
+    for (i = 0; i < std::min(max_len-1, _len); i++)
+    {
+      if (isprint(_data[i]))
+      {
+        buff[i] = _data[i];
+      }
+      else
+      {
+        buff[i] = err;
+      }
+    }
+    buff[i] = 0;
+  }
+  void destroy()
+  {
+    if (_data != nullptr)
+    {
+      free(_data);
+      _data = nullptr;
+      _len = 0;
+    }
+  }
+};
+
 long FileEditTime(const char* filename);
 
 const char* open_file_dialogue();
 void init_tts();
-void tts_push_word(const char* w); // adds a space after
-void tts_push_piece(const char* p); // doesn't add a space
+void tts_push(FixedString& w);
 void tts_backspace(); // remove last pushed piece or word
 void tts_clear();
-const char* tts_fill_final_buffer();
+const u8* tts_fill_final_buffer();
 void tts_play();
 void destroy_tts();
 

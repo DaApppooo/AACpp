@@ -8,7 +8,7 @@ struct Board;
 struct Cell
 {
   Rectangle rect;
-  char* name;
+  FixedString name;
   opt_board_index_t child;
   opt_board_index_t parent;
   int tex_id;

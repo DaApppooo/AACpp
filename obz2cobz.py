@@ -18,7 +18,7 @@ import zipfile as zipf
 from struct import pack
 from typing import Tuple
 import requests as rq
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import os
 import io
 from tqdm import tqdm
@@ -26,9 +26,10 @@ from time import sleep
 import traceback
 from configparser import ConfigParser
 
+
 DEFAULTS = ConfigParser()
 DEFAULTS.read('config/defaults.ini')
-SUPPORTED_IMAGE_FORMATS = ('png','jpg','jpeg','tga','bmp','psd','gif','hdr','pic','pnm')
+SUPPORTED_IMAGE_FORMATS = ('png','jpg','jpeg','tga','bmp','psd','gif','hdr','pic','pnm','svg')
 LEGACY_COLORS = {
 "AliceBlue":"#F0F8FF",
 "AntiqueWhite":"#FAEBD7",
@@ -180,6 +181,7 @@ LEGACY_COLORS = {
 "YellowGreen":"#9ACD32"
 }
 LEGACY_COLORS = { k:pack('>i', int(v[1:], 16)) for k,v in LEGACY_COLORS.items() }
+ERROR_COLOR = bytes([0, 0, 0, 0])
 
 def expect(cond: bool, err_msg: str):
     if not cond:
@@ -187,7 +189,7 @@ def expect(cond: bool, err_msg: str):
         quit(1)
 
 def perror(msg: str):
-    stderr.write(str(msg))
+    stderr.write(str(msg) + '\n')
 
 def want(cond: bool, warn_msg: str):
     if not cond:
@@ -210,6 +212,17 @@ def info(msg: str):
 def todo():
     raise NotImplementedError()
 
+def var2fixed_utf8(s: bytes) -> bytes:
+    UTF8_BIT = 1 << 7
+    r = bytes([])
+    n = 0
+    for i in s:
+        n = (n << 8) | int(i)
+        if not (int(i) & UTF8_BIT):
+            r += pack('=i', n)
+            n = 0
+    return r
+
 class Cell:
     name: str
     tex_id: int
@@ -224,12 +237,16 @@ class Cell:
     def serialize(self) -> bytes:
         if self.name is None:
             self.name = ""
+        self.background = self.background or ERROR_COLOR
+        self.border = self.border or ERROR_COLOR
+        byts = self.name.encode('utf-8')
+        byts = var2fixed_utf8(byts)
         return pack(
-            f'=3siq{len(self.name)}sii4B4B',
+            f'=3siq{len(byts)}sii4B4B',
             b'CLL',
             self.tex_id,
-            len(self.name),
-            self.name.encode('ascii'),
+            len(byts),
+            byts,
             self.parent,
             self.child,
             *self.background,
@@ -267,10 +284,10 @@ def parse_color(expr: str | None, default) -> bytes:
     if expr is None:
         return default
     if expr.startswith('rgb(') and expr.endswith(')'):
-        r,g,b = (int(depercent(i.strip())) for i in expr[4:-1].split(','))
+        r,g,b = (int(depercent(i.strip(), 255)) for i in expr[4:-1].split(','))
         a = 255
     elif expr.startswith('rgba(') and expr.endswith(')'):
-        r,g,b,a = (int(depercent(i.strip())) for i in expr[4:-1].split(','))
+        r,g,b,a = (int(depercent(i.strip(), 255)) for i in expr[5:-1].split(','))
     elif expr.startswith('#'):
         if len(expr) == 7:
             r,g,b = (int(c0+c1, 16) for c0,c1 in zip(expr[1::2],expr[2::2]))
@@ -288,15 +305,18 @@ def parse_color(expr: str | None, default) -> bytes:
     
             
 
-def load_img_raw(z: zipf.ZipFile, src: str | None) -> bytes | None:
+def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | None:
     if not src: # src is None or len(src) == 0
         return None
     raw: bytes
     if src.startswith('http'):
         try:
+            extension = src[src.rfind('.')+1:]
             resp = rq.get(src)
             sleep(0.2) # avoid getting flagged as some kind of ddos stuff by any website
             raw = resp.content
+            if extension.lower() == 'svg':
+                raw = cairosvg.svg2png(bytestring=raw)
         except rq.RequestException as e:
             perror(f"Failed to load image with error {type(e).__name__}:{e} from web address: {repr(src)}")
             return None
@@ -311,25 +331,32 @@ def load_img_raw(z: zipf.ZipFile, src: str | None) -> bytes | None:
         encoding = src[cur:cur2]
         expect(encoding.lower() == 'base64', f">Unsupported encoding {encoding} for inline image (only base64 is supported).")
         raw = base64.b64decode(src[cur2:])
-    elif src[src.rfind('.'):] in SUPPORTED_IMAGE_FORMATS:
+        if extension.lower() == 'svg':
+            raw = cairosvg.svg2png(bytestring=raw)
+    elif (extension := src[src.rfind('.'):]) in SUPPORTED_IMAGE_FORMATS:
         with z.open(src, 'rb') as _f_image:
             raw =_f_image.read()
+        if extension.lower() == 'svg':
+            raw = cairosvg.svg2png(bytestring=raw)
     else:
         expect(False, f">Unknown image source information format ({repr(src[:30])}{'...' if len(src) >= 30 else ''}).")
     # Last checks just to make sure everything is good:
-    pil_img = Image.open(io.BytesIO(raw))
     try:
-        pil_img.verify()
-    except Exception:
-        expect(False, '>Given image is broken.')
-    ext = pil_img.format.lower()
-    if ext == 'webp':
-        buf = io.BytesIO()
-        pil_img.save(buf, 'png')
-        raw = buf.read()
-    else:
-        expect(ext in SUPPORTED_IMAGE_FORMATS, f'>Unsupported image format {repr(pil_img.format.lower())}. See README.md for the list of supported image formats.')
-    pil_img.close()
+        pil_img = Image.open(io.BytesIO(raw))
+        try:
+            pil_img.verify()
+        except Exception:
+            expect(False, '>Given image is broken.')
+        ext = pil_img.format.lower()
+        if ext == 'webp':
+            buf = io.BytesIO()
+            pil_img.save(buf, 'png')
+            raw = buf.read()
+        else:
+            expect(ext in SUPPORTED_IMAGE_FORMATS, f'>Unsupported image format {repr(pil_img.format.lower())}. See README.md for the list of supported image formats.')
+        pil_img.close()
+    except UnidentifiedImageError:
+        perror(f"Failed to identify image for cell {repr(cell_name)}, {src=}.")
     return raw
 
 def find_position(id: str, dbl: list[list[str]]):
@@ -363,14 +390,17 @@ def parse_board(
     board.w = obf['grid']['columns']
     board.h = obf['grid']['rows']
     board.cells = []
-    for b in tqdm(obf['buttons']):
-        want1(b['border_color'] is None, "*Border color for cell/button isn't supported.", 0)
-        want1(b['background_color'] is None, "*Background color for cell/button isn't supported.", 1)
+    for b in obf['buttons']:
+        # want1(b['border_color'] is None, "*Border color for cell/button isn't supported.", 0)
+        # want1(b['background_color'] is None, "*Background color for cell/button isn't supported.", 1)
         c = Cell()
         c.obz_id = str(b['id'])
         c.obz_tex_id = None
         c.obz_child_id = None
         c.parent = -1
+        c.background = ERROR_COLOR
+        c.border = ERROR_COLOR
+        c.name = b.get('label') # Not always specified
         if b['image_id'] not in cobz.textures:
             img_src = None
             for i in obf['images']:
@@ -386,7 +416,7 @@ def parse_board(
             else:
                 c.tex_id = -1
                 c.obz_tex_id = None
-            if raw := load_img_raw(z, img_src):
+            if raw := load_img_raw(z, img_src, c.name):
                 cobz.textures[b['image_id']] = raw
                 c.obz_tex_id = b['image_id']
             else:
@@ -401,10 +431,9 @@ def parse_board(
             c.obz_child_id = id
             # TODO: Add other ways to link boards
         if 'background_color' in b:
-            c.background = parse_color(b['background_color'], DEFAULTS['cell']['background'])
+            c.background = parse_color(b['background_color'], parse_color(DEFAULTS['cell']['background'], ERROR_COLOR))
         if 'border_color' in b:
-            c.border = parse_color(b['border_color'], DEFAULTS['cell']['border'])
-        c.name = b.get('label') # Not always specified
+            c.border = parse_color(b['border_color'], parse_color(DEFAULTS['cell']['border'], ERROR_COLOR))
         c.obz_xy = find_position(c.obz_id, obf['grid']['order'])
         board.cells.append(c)
     # Sorting cells based on position
