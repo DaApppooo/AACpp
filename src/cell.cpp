@@ -9,11 +9,7 @@
 
 void Cell::destroy()
 {
-  if (name != nullptr)
-  {
-    free(name);
-    name = nullptr;
-  }
+  name.destroy();
 }
 
 Rectangle Cell::get_rect(const Board& board, int x, int y) const
@@ -49,17 +45,18 @@ void Cell::draw(const Board& board, int x, int y) const
     background // this is now default CLAY_COLOR_TO_RAYLIB_COLOR(theme::cell_color)
   );
   Vector2 txtm = {0.0f, theme::FONT_SIZE};
-  if (str_len(name) != 0)
+  if (name.len() != 0)
   {
+    const char* buf = fix2var_utf8(name, (char*)TextFormat(""));
     txtm = MeasureTextEx(
       Raylib_fonts[0].font,
-      name,
+      buf,
       theme::FONT_SIZE,
       theme::TEXT_SPACING
     );
     DrawTextEx(
                Raylib_fonts[0].font,
-               name,
+               buf,
                {
                 rect.x + rect.width/2.f - txtm.x/2.f,
                 rect.y + rect.height - txtm.y
@@ -91,8 +88,10 @@ void Cell::draw(const Board& board, int x, int y) const
 }
 
 /*
-All of this will be simplified when Clay actually implements
-grids and flex-wrap containers.
+All of this will be simplified when Clay actually implements grids and
+flex-wrap containers.
+Although this would disable absolute positioning as described in the obf format
+specification.
 */
 opt_board_index_t Cell::update(const Board& board, int x, int y) {
   // faster to recompute everytime
@@ -110,8 +109,8 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
   } else {
     if (ctrl::mouse_down && inbounds) {
       if (spring) {
-        if (str_len(name) != 0) {
-          tts_push_word(name);
+        if (name.len() != 0) {
+          tts_push(name);
         }
         spring = false;
       }
@@ -146,10 +145,7 @@ void Cell::deserialize(Stream f)
   f.read(buf, 3);
   assert(memcmp(buf, "CLL", 3) == 0);
   tex_id = f.read<int>();
-  l = f.read<isize>();
-  assert(l >= 0);
-  name = (char*)malloc(sizeof(char)*(l+1));
-  f.read(name, l);
+  name.deserialize(f._f);
   name[l] = 0;
   parent = f.read<opt_board_index_t>();
   child = f.read<opt_board_index_t>();

@@ -114,7 +114,7 @@ void tts_clear()
 }
 
 // fixed 4 byte "utf8" to real utf8
-const u8* tts_fill_final_buffer()
+const char* tts_fill_final_buffer()
 {
   constexpr int UTF8_CHECK_BIT = 1 << 7;
   int bi = 0;
@@ -150,11 +150,9 @@ const u8* tts_fill_final_buffer()
     }
   }
   TTS_MSG_FINAL[bi] = 0;
-  return TTS_MSG_FINAL;
+  return (const char*)TTS_MSG_FINAL;
 }
 void destroy_tts() {}
-#endif
-
 void tts_play()
 {
   const int len = str_len((const char*)TTS_MSG_FINAL) / sizeof(FixedString::Char);
@@ -164,5 +162,44 @@ void tts_play()
   fwrite(TTS_MSG_FINAL, sizeof(u8)*(len+1), 1, p);
   fclose(p);
 }
+#endif
+
+
+const char* fix2var_utf8(const FixedString& s, char* ob)
+{
+  constexpr int MAX = TTS_MSG_LEN;
+  constexpr int UTF8_CHECK_BIT = 1 << 7;
+  int bi = 0;
+  for (int i = 0; i < s.len(); i++)
+  {
+    const int c = s._data[i];
+    if (!((c >> 0) & UTF8_CHECK_BIT))
+    {
+      ob[bi++] = c; // simple cast
+    }
+    else if (!((c >> 8) & UTF8_CHECK_BIT))
+    {
+      ob[bi++] = c & ~UTF8_CHECK_BIT;
+      ob[bi++] = c >> 8; // +2nd byte cast
+    }
+    else if (!((c >> 16) & UTF8_CHECK_BIT))
+    {
+      ob[bi++] = c & ~UTF8_CHECK_BIT;
+      ob[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
+      ob[bi++] = c >> 16;
+    }
+    else
+    {
+      ob[bi++] = c & ~UTF8_CHECK_BIT;
+      ob[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
+      ob[bi++] = (c >> 16) & ~UTF8_CHECK_BIT;
+      ob[bi++] = c >> 24;
+    }
+  }
+  ob[bi] = 0;
+  return ob;
+}
+
+
 
 

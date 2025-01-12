@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <cstdint>
 #include <cstdlib>
@@ -43,17 +44,18 @@ struct FixedString
   using Char = int;
   u64 _len;
   Char* _data;
-  inline i64 len()
+  inline i64 len() const
   {
     return _len;
   }
-  inline i64 mem_size()
+  inline i64 mem_size() const
   {
     return sizeof(Char)*_len;
   }
   inline void deserialize(FILE* f)
   {
     fread(&_len, sizeof(u64), 1, f);
+    assert(_len > 0);
     _data = (Char*)malloc(sizeof(Char)*_len);
     fread(_data, _len, 1, f);
   }
@@ -73,6 +75,10 @@ struct FixedString
     }
     buff[i] = 0;
   }
+  inline int& operator [] (int i)
+  {
+    return _data[i];
+  }
   void destroy()
   {
     if (_data != nullptr)
@@ -91,9 +97,11 @@ void init_tts();
 void tts_push(FixedString& w);
 void tts_backspace(); // remove last pushed piece or word
 void tts_clear();
-const u8* tts_fill_final_buffer();
+const char* tts_fill_final_buffer();
 void tts_play();
 void destroy_tts();
+
+const char* fix2var_utf8(const FixedString& s, char* ob);
 
 inline constexpr int str_len(const char* s)
 {

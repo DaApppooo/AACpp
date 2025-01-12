@@ -25,7 +25,16 @@ from tqdm import tqdm
 from time import sleep
 import traceback
 from configparser import ConfigParser
+from subprocess import Popen, PIPE
 
+def svg2png(data: bytes) -> bytes:
+    f = Popen(['cairosvg', '-W', '300', '-H', '300', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
+    f.stdin.write(data)
+    f.stdin.flush()
+    f.stdin.close()
+    raw = f.stdout.read()
+    f.stdout.close()
+    return bytes(raw)
 
 DEFAULTS = ConfigParser()
 DEFAULTS.read('config/defaults.ini')
@@ -316,7 +325,7 @@ def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | No
             sleep(0.2) # avoid getting flagged as some kind of ddos stuff by any website
             raw = resp.content
             if extension.lower() == 'svg':
-                raw = cairosvg.svg2png(bytestring=raw)
+                raw = svg2png(raw)
         except rq.RequestException as e:
             perror(f"Failed to load image with error {type(e).__name__}:{e} from web address: {repr(src)}")
             return None
@@ -332,12 +341,12 @@ def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | No
         expect(encoding.lower() == 'base64', f">Unsupported encoding {encoding} for inline image (only base64 is supported).")
         raw = base64.b64decode(src[cur2:])
         if extension.lower() == 'svg':
-            raw = cairosvg.svg2png(bytestring=raw)
+            raw = svg2png(raw)
     elif (extension := src[src.rfind('.'):]) in SUPPORTED_IMAGE_FORMATS:
         with z.open(src, 'rb') as _f_image:
             raw =_f_image.read()
         if extension.lower() == 'svg':
-            raw = cairosvg.svg2png(bytestring=raw)
+            raw = svg2png(raw)
     else:
         expect(False, f">Unknown image source information format ({repr(src[:30])}{'...' if len(src) >= 30 else ''}).")
     # Last checks just to make sure everything is good:
@@ -390,7 +399,7 @@ def parse_board(
     board.w = obf['grid']['columns']
     board.h = obf['grid']['rows']
     board.cells = []
-    for b in obf['buttons']:
+    for b in tqdm(obf['buttons']):
         # want1(b['border_color'] is None, "*Border color for cell/button isn't supported.", 0)
         # want1(b['background_color'] is None, "*Background color for cell/button isn't supported.", 1)
         c = Cell()

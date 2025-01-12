@@ -22,7 +22,8 @@ void Board::deserialize(Stream f)
   cells = (Cell*)malloc(sizeof(Cell)*layout_width*layout_height);
   for (int i = 0; i < layout_width*layout_height; i++)
   {
-    cells[i].name = nullptr; 
+    cells[i].name._data = nullptr;
+    cells[i].name._len = 0; 
     cells[i].rect = cells[i].get_rect(*this, i%layout_width, i/layout_width);
     cells[i].deserialize(f);
   }

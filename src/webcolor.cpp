@@ -162,6 +162,9 @@ Color color_parse_or(const char* s, Color fallback)
   && s[2] == 'b'
   && s[3] == 'a'
   && s[4] == '('
-  )
+  ) {
+    
+  }
+  return ret;
 }
 
