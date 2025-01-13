@@ -55,7 +55,12 @@ struct FixedString
   inline void deserialize(FILE* f)
   {
     fread(&_len, sizeof(u64), 1, f);
-    assert(_len > 0);
+    assert(_len >= 0);
+    if (_len == 0)
+    {
+      _data = nullptr;
+      return;
+    }
     _data = (Char*)malloc(sizeof(Char)*_len);
     fread(_data, _len, 1, f);
   }

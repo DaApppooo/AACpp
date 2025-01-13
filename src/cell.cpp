@@ -141,12 +141,10 @@ void Cell::deserialize(Stream f)
 {
   assert(sizeof(isize) == 8);
   char buf[3];
-  isize l;
   f.read(buf, 3);
   assert(memcmp(buf, "CLL", 3) == 0);
   tex_id = f.read<int>();
   name.deserialize(f._f);
-  name[l] = 0;
   parent = f.read<opt_board_index_t>();
   child = f.read<opt_board_index_t>();
   background = f.read<Color>();

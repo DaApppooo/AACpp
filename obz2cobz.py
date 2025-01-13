@@ -249,7 +249,9 @@ class Cell:
         self.background = self.background or ERROR_COLOR
         self.border = self.border or ERROR_COLOR
         byts = self.name.encode('utf-8')
+        print(self.name)
         byts = var2fixed_utf8(byts)
+        print(byts)
         return pack(
             f'=3siq{len(byts)}sii4B4B',
             b'CLL',
@@ -311,7 +313,7 @@ def parse_color(expr: str | None, default) -> bytes:
     else:
         want(False, f"Unknown color format: {repr(expr)}")
         return default
-    
+    return bytes([r,g,b,a])
             
 
 def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | None:
@@ -399,7 +401,7 @@ def parse_board(
     board.w = obf['grid']['columns']
     board.h = obf['grid']['rows']
     board.cells = []
-    for b in tqdm(obf['buttons']):
+    for b in obf['buttons']:
         # want1(b['border_color'] is None, "*Border color for cell/button isn't supported.", 0)
         # want1(b['background_color'] is None, "*Background color for cell/button isn't supported.", 1)
         c = Cell()
