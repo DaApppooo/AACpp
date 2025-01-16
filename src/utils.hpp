@@ -38,36 +38,39 @@ inline void memcpy_lin(
     src_ += src_a;
   }
 }
-
+/*
+'Fixed' is used here as an opposite to dynamic. Allocated once when deserialized.
+Works with variable length utf8 encoding.
+*/
 struct FixedString
 {
-  using Char = int;
-  u64 _len;
+  using Char = char;
+  u64 _byte_len;
   Char* _data;
   inline i64 len() const
   {
-    return _len;
+    return _byte_len;
   }
   inline i64 mem_size() const
   {
-    return sizeof(Char)*_len;
+    return sizeof(Char)*_byte_len;
   }
   inline void deserialize(FILE* f)
   {
-    fread(&_len, sizeof(u64), 1, f);
-    assert(_len >= 0);
-    if (_len == 0)
+    fread(&_byte_len, sizeof(u64), 1, f);
+    assert(_byte_len >= 0);
+    if (_byte_len == 0)
     {
       _data = nullptr;
       return;
     }
-    _data = (Char*)malloc(sizeof(Char)*_len);
-    fread(_data, _len, 1, f);
+    _data = (Char*)malloc(sizeof(Char)*_byte_len);
+    fread(_data, _byte_len, 1, f);
   }
   inline void to_ascii_buffer(char* buff, u64 max_len, char err)
   {
     int i;
-    for (i = 0; i < std::min(max_len-1, _len); i++)
+    for (i = 0; i < std::min(max_len-1, _byte_len); i++)
     {
       if (isprint(_data[i]))
       {
@@ -80,7 +83,7 @@ struct FixedString
     }
     buff[i] = 0;
   }
-  inline int& operator [] (int i)
+  inline Char& operator [] (int i)
   {
     return _data[i];
   }
@@ -90,7 +93,7 @@ struct FixedString
     {
       free(_data);
       _data = nullptr;
-      _len = 0;
+      _byte_len = 0;
     }
   }
 };

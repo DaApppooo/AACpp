@@ -47,7 +47,7 @@ void Cell::draw(const Board& board, int x, int y) const
   Vector2 txtm = {0.0f, theme::FONT_SIZE};
   if (name.len() != 0)
   {
-    const char* buf = fix2var_utf8(name, (char*)TextFormat(""));
+    const char* buf = name._data;
     txtm = MeasureTextEx(
       Raylib_fonts[0].font,
       buf,

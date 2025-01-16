@@ -249,9 +249,6 @@ class Cell:
         self.background = self.background or ERROR_COLOR
         self.border = self.border or ERROR_COLOR
         byts = self.name.encode('utf-8')
-        print(self.name)
-        byts = var2fixed_utf8(byts)
-        print(byts)
         return pack(
             f'=3siq{len(byts)}sii4B4B',
             b'CLL',

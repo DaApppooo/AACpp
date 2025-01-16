@@ -36,6 +36,12 @@ inline void BringKeyboard()
 {}
 #endif
 
+constexpr int TTS_MSG_LEN = 2048;
+FixedString::Char TTS_MSG_BUILDER[TTS_MSG_LEN];
+int TTS_POS = 0;
+
+char TTS_MSG_FINAL[TTS_MSG_LEN];
+
 #ifdef __linux__
 # ifndef MAX_PATH
 #  define MAX_PATH 1024
@@ -63,12 +69,7 @@ const char* open_file_dialogue()
   }
 }
 
-constexpr int TTS_MSG_LEN = 2048;
 constexpr int TTS_CLI_LEN = 1024;
-FixedString::Char TTS_MSG_BUILDER[TTS_MSG_LEN];
-int TTS_POS = 0;
-
-u8 TTS_MSG_FINAL[TTS_MSG_LEN];
 char TTS_CLI[TTS_CLI_LEN];
 void init_tts()
 {
@@ -108,6 +109,19 @@ void tts_backspace()
       TTS_POS--;
   }
 }
+
+void tts_play()
+{
+  const int len = str_len((const char*)TTS_MSG_FINAL) / sizeof(FixedString::Char);
+  if (len == 0)
+    return;
+  FILE* p = popen(TTS_CLI, "w");
+  fwrite(TTS_MSG_FINAL, sizeof(u8)*(len+1), 1, p);
+  fclose(p);
+}
+#endif
+
+
 void tts_clear()
 {
   TTS_POS = 0;
@@ -124,82 +138,10 @@ const char* tts_fill_final_buffer()
     { }
     else
     {
-      const int c = TTS_MSG_BUILDER[i];
-      if (!((c >> 0) & UTF8_CHECK_BIT))
-      {
-        TTS_MSG_FINAL[bi++] = c; // simple cast
-      }
-      else if (!((c >> 8) & UTF8_CHECK_BIT))
-      {
-        TTS_MSG_FINAL[bi++] = c & ~UTF8_CHECK_BIT;
-        TTS_MSG_FINAL[bi++] = c >> 8; // +2nd byte cast
-      }
-      else if (!((c >> 16) & UTF8_CHECK_BIT))
-      {
-        TTS_MSG_FINAL[bi++] = c & ~UTF8_CHECK_BIT;
-        TTS_MSG_FINAL[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
-        TTS_MSG_FINAL[bi++] = c >> 16;
-      }
-      else
-      {
-        TTS_MSG_FINAL[bi++] = c & ~UTF8_CHECK_BIT;
-        TTS_MSG_FINAL[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
-        TTS_MSG_FINAL[bi++] = (c >> 16) & ~UTF8_CHECK_BIT;
-        TTS_MSG_FINAL[bi++] = c >> 24;
-      }
+      TTS_MSG_FINAL[bi++] = TTS_MSG_BUILDER[i];
     }
   }
   TTS_MSG_FINAL[bi] = 0;
   return (const char*)TTS_MSG_FINAL;
 }
 void destroy_tts() {}
-void tts_play()
-{
-  const int len = str_len((const char*)TTS_MSG_FINAL) / sizeof(FixedString::Char);
-  if (len == 0)
-    return;
-  FILE* p = popen(TTS_CLI, "w");
-  fwrite(TTS_MSG_FINAL, sizeof(u8)*(len+1), 1, p);
-  fclose(p);
-}
-#endif
-
-
-const char* fix2var_utf8(const FixedString& s, char* ob)
-{
-  constexpr int MAX = TTS_MSG_LEN;
-  constexpr int UTF8_CHECK_BIT = 1 << 7;
-  int bi = 0;
-  for (int i = 0; i < s.len(); i++)
-  {
-    const int c = s._data[i];
-    if (!((c >> 0) & UTF8_CHECK_BIT))
-    {
-      ob[bi++] = c; // simple cast
-    }
-    else if (!((c >> 8) & UTF8_CHECK_BIT))
-    {
-      ob[bi++] = c & ~UTF8_CHECK_BIT;
-      ob[bi++] = c >> 8; // +2nd byte cast
-    }
-    else if (!((c >> 16) & UTF8_CHECK_BIT))
-    {
-      ob[bi++] = c & ~UTF8_CHECK_BIT;
-      ob[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
-      ob[bi++] = c >> 16;
-    }
-    else
-    {
-      ob[bi++] = c & ~UTF8_CHECK_BIT;
-      ob[bi++] = (c >> 8) & ~UTF8_CHECK_BIT;
-      ob[bi++] = (c >> 16) & ~UTF8_CHECK_BIT;
-      ob[bi++] = c >> 24;
-    }
-  }
-  ob[bi] = 0;
-  return ob;
-}
-
-
-
-
