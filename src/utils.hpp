@@ -98,16 +98,24 @@ struct FixedString
   }
 };
 
+
 long FileEditTime(const char* filename);
 
 const char* open_file_dialogue();
 void init_tts();
+void tts_change(FixedString& w); // FUTURE: takes an index as parameter
 void tts_push(FixedString& w);
 void tts_backspace(); // remove last pushed piece or word
 void tts_clear();
 const char* tts_fill_final_buffer();
 void tts_play();
 void destroy_tts();
+
+inline void tts_change(FixedString& w)
+{
+  tts_backspace();
+  tts_push(w);
+}
 
 const char* fix2var_utf8(const FixedString& s, char* ob);
 

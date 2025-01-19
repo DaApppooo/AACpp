@@ -15,6 +15,8 @@ list<Board> boards;
 Clay_TextElementConfig font;
 Texture btns[4];
 
+Ref<list<FixedString>> current_actions;
+
 void TextureDumpLoad(Texture& tex, Stream s)
 {
   static char buf[6];
@@ -72,6 +74,8 @@ int init_res(Ref<Stream> s)
   assert(sizeof(isize)==8);
   isize tex_count, board_count;
 
+  current_actions.init();
+
   Raylib_fonts[0].font = LoadFontEx("res/font.ttf", theme::FONT_SIZE*2, nullptr, -1);
   font.fontId = 0;
   font.fontSize = theme::FONT_SIZE;
@@ -119,4 +123,5 @@ void destroy_res()
   }
   texs.destroy();
   boards.destroy();
+  assert(!current_actions.is_owned());
 }

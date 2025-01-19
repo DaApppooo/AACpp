@@ -9,6 +9,7 @@ using String = list<char>;
 extern list<Texture> texs;
 extern Clay_TextElementConfig font;
 extern Texture btns[4];
+extern Ref<list<FixedString>> current_actions;
 enum BtnRectId
 {
   BTI_UP,

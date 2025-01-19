@@ -239,22 +239,26 @@ class Cell:
     child: int
     background: bytes
     border: bytes
+    actions: list[bytes]
     obz_child_id: str | None
     obz_tex_id: str | None
     obz_id: str
     obz_xy: Tuple[int, int]
     def serialize(self) -> bytes:
-        if self.name is None:
-            self.name = ""
         self.background = self.background or ERROR_COLOR
         self.border = self.border or ERROR_COLOR
         byts = self.name.encode('utf-8')
+        actions = b''
+        for a in self.actions:
+            actions += pack('=qs', len(a), a)
         return pack(
-            f'=3siq{len(byts)}sii4B4B',
+            f'=3siq{len(byts)}sq{len(actions)}sii4B4B',
             b'CLL',
             self.tex_id,
             len(byts),
             byts,
+            len(self.actions),
+            actions
             self.parent,
             self.child,
             *self.background,
@@ -408,7 +412,14 @@ def parse_board(
         c.parent = -1
         c.background = ERROR_COLOR
         c.border = ERROR_COLOR
-        c.name = b.get('label') # Not always specified
+        c.name = b.get('label') or "" # Not always specified
+        c.actions = []
+        if 'actions' in b:
+            c.actions = [a.encode('utf-8') for a in b['actions']]
+        elif 'action' in b:
+            c.actions = [b['action'].encode('utf-8')]
+        elif c.name:
+            c.actions = [('+ ' + c.name).encode('utf-8')]
         if b['image_id'] not in cobz.textures:
             img_src = None
             for i in obf['images']:

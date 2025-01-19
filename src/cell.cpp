@@ -17,13 +17,16 @@ Rectangle Cell::get_rect(const Board& board, int x, int y) const
   return {
     x * ((XMAX - theme::gpad*2)/board.layout_width) + theme::gpad,
     y * (
-          (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min)
+          (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*2.f)
           /board.layout_height
         )
       + theme::gpad
       + theme::BAR_SIZE.height.sizeMinMax.min,
     ((XMAX - theme::gpad*2)/board.layout_width) - theme::gpad, // these -gpads
-    ((YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min)/board.layout_height) - theme::gpad // are margins
+    (
+      (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min)
+      /board.layout_height
+    ) - theme::gpad // are margins, and not paddings, but anyway
   };
 }
 
@@ -94,6 +97,8 @@ Although this would disable absolute positioning as described in the obf format
 specification.
 */
 opt_board_index_t Cell::update(const Board& board, int x, int y) {
+  if (name._byte_len == 0 || actions.len() == 0)
+    return INVALID_BOARD_INDEX;
   // faster to recompute everytime
   const bool inbounds = CheckCollisionPointRec(ctrl::mpos, rect);
   const Rectangle ideal_rect = get_rect(board, x, y);
@@ -104,14 +109,18 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
   rect.height = Lerp(rect.height, ideal_rect.height, lerp_speed);
   if (is_folder()) {
     if (ctrl::mouse_down && inbounds) {
+      current_actions.init();
       return child;
     }
   } else {
     if (ctrl::mouse_down && inbounds) {
       if (spring) {
-        if (name.len() != 0) {
-          tts_push(name);
+        if (actions[0]._data[0] == '+') {
+          tts_push(actions[0]);
+          current_actions.assign(actions);
         }
+        else
+          TraceLog(LOG_WARNING, "Non + actions aren't supported yet.");
         spring = false;
       }
     } else {
@@ -141,10 +150,18 @@ void Cell::deserialize(Stream f)
 {
   assert(sizeof(isize) == 8);
   char buf[3];
+  i64 size;
   f.read(buf, 3);
   assert(memcmp(buf, "CLL", 3) == 0);
   tex_id = f.read<int>();
   name.deserialize(f._f);
+  size = f.read<i64>();
+  actions.prealloc(size);
+  actions.set_len(size);
+  for (int i = 0; i < size; i++)
+  {
+    actions[i].deserialize(f._f);
+  }
   parent = f.read<opt_board_index_t>();
   child = f.read<opt_board_index_t>();
   background = f.read<Color>();

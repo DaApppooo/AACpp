@@ -88,10 +88,12 @@ void init_tts()
 }
 void tts_push(FixedString& w)
 {
-  const int len = w.len();
+  const int len = w.len()-1;
+  assert(len > 0);
+  assert(w._data[0] == '+');
   memcpy(
     TTS_MSG_BUILDER + TTS_POS,
-    w._data,
+    w._data + 1,
     sizeof(FixedString::Char)*std::min(TTS_MSG_LEN - TTS_POS - 1, len)
   );
   TTS_POS += len;

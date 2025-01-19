@@ -219,6 +219,20 @@ int main()
           };
         };
         CLAY(
+          CLAY_ID("actions"),
+          CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
+          CLAY_LAYOUT({
+                .sizing = theme::BAR_SIZE,
+                .padding = theme::gpad,
+                .childGap = 10,
+                .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
+                .layoutDirection = CLAY_LEFT_TO_RIGHT
+          })
+        ) {
+          // Filled without clay
+          // FUTURE: Add button IF overflow to scroll between options
+        }
+        CLAY(
           CLAY_ID("content"),
           CLAY_LAYOUT({
                   .sizing = theme::GROW,
