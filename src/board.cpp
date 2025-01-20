@@ -1,6 +1,10 @@
 #include "board.hpp"
 #include "resman.hpp"
+#include "theme.hpp"
 #include <cassert>
+#include <raylib.h>
+#include "rlclay.h"
+#include "utils.hpp"
 
 void Board::serialize(Stream f)
 {
@@ -40,15 +44,50 @@ void Board::draw()
 
 opt_board_index_t Board::update()
 {
-  opt_board_index_t p = INVALID_BOARD_INDEX;
-  for (int y = 0; y < layout_height; y++)
+  opt_board_index_t p;
   {
-    for (int x = 0; x < layout_width; x++)
+    // Draw actions
+    float x = theme::gpad;
+    for (int i = 0; i < current_actions.len(); i++)
     {
-      const opt_board_index_t np =
-        cells[x + y*layout_width].update(*this, x, y);
-      if (is_board_index(np))
-        p = np; // MATHEMATICIANS IN SHAMBLES !!! I SOLVED IT GUYS !!! /j
+      if (current_actions[i]._data[0] != '+')
+        todo();
+      const char* buf = current_actions[i]._data+1;
+      const float w = MeasureTextEx(
+        Raylib_fonts[0].font,
+        buf,
+        theme::FONT_SIZE,
+        theme::TEXT_SPACING
+      ).x;
+      if (x + w > XMAX-theme::gpad)
+        // TODO: Add a button to let the user see other available actions.
+        break;
+      DrawTextEx(
+        Raylib_fonts[0].font,
+        buf,
+        {
+          x,
+          theme::BAR_SIZE.height.sizeMinMax.min + theme::gpad
+        },
+        theme::FONT_SIZE,
+        theme::TEXT_SPACING,
+        CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
+      );
+      x += w + theme::gpad;
+    }
+  }
+  {
+    // Draw cells
+    p = INVALID_BOARD_INDEX;
+    for (int y = 0; y < layout_height; y++)
+    {
+      for (int x = 0; x < layout_width; x++)
+      {
+        const opt_board_index_t np =
+          cells[x + y*layout_width].update(*this, x, y);
+        if (is_board_index(np))
+          p = np; // MATHEMATICIANS IN SHAMBLES !!! I SOLVED IT GUYS !!! /j
+      }
     }
   }
   return p;

@@ -258,7 +258,7 @@ class Cell:
             len(byts),
             byts,
             len(self.actions),
-            actions
+            actions,
             self.parent,
             self.child,
             *self.background,
