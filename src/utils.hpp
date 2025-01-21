@@ -10,7 +10,7 @@
 #ifndef H_UTILS
 #define H_UTILS
 
-#define todo() dblog(LOG_FATAL, "TODO REACHED %s:%i", __FILE__, __LINE__); abort()
+#define todo() {dblog(LOG_FATAL, "TODO REACHED %s:%i", __FILE__, __LINE__); abort();}
 
 using u8 = uint8_t;
 using u64 = uint64_t;
@@ -64,8 +64,9 @@ struct FixedString
       _data = nullptr;
       return;
     }
-    _data = (Char*)malloc(sizeof(Char)*_byte_len);
+    _data = (Char*)malloc(sizeof(Char)*(_byte_len+1));
     fread(_data, _byte_len, 1, f);
+    _data[_byte_len] = 0;
   }
   inline void to_ascii_buffer(char* buff, u64 max_len, char err)
   {
@@ -163,7 +164,7 @@ extern bool edit_mode;
 namespace ctrl
 {
   extern fvec2 mpos;
-  extern bool mouse_down;
+  extern bool touch_press;
   extern char read;
 }
 

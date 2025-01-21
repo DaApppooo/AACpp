@@ -250,7 +250,7 @@ class Cell:
         byts = self.name.encode('utf-8')
         actions = b''
         for a in self.actions:
-            actions += pack('=qs', len(a), a)
+            actions += pack(f'=q{len(a)}s', len(a), a)
         return pack(
             f'=3siq{len(byts)}sq{len(actions)}sii4B4B',
             b'CLL',
@@ -414,12 +414,6 @@ def parse_board(
         c.border = ERROR_COLOR
         c.name = b.get('label') or "" # Not always specified
         c.actions = []
-        if 'actions' in b:
-            c.actions = [a.encode('utf-8') for a in b['actions']]
-        elif 'action' in b:
-            c.actions = [b['action'].encode('utf-8')]
-        elif c.name:
-            c.actions = [('+ ' + c.name).encode('utf-8')]
         if b['image_id'] not in cobz.textures:
             img_src = None
             for i in obf['images']:
@@ -449,6 +443,12 @@ def parse_board(
                 expect(False, f"Could not find known board id with path {repr(b['load_board']['path'])}.")
             c.obz_child_id = id
             # TODO: Add other ways to link boards
+        if 'actions' in b:
+            c.actions = [a.encode('utf-8') for a in b['actions']]
+        elif 'action' in b:
+            c.actions = [b['action'].encode('utf-8')]
+        elif c.name:
+            c.actions = [('+ ' + c.name).encode('utf-8')]
         if 'background_color' in b:
             c.background = parse_color(b['background_color'], parse_color(DEFAULTS['cell']['background'], ERROR_COLOR))
         if 'border_color' in b:

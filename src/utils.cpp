@@ -19,7 +19,7 @@ long FileEditTime(const char* filename)
 namespace ctrl
 {
   fvec2 mpos;
-  bool mouse_down;
+  bool touch_press;
 }
 
 #if 0 && PLATFORM == PLATFORM_ANDROID

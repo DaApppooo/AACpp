@@ -33,25 +33,15 @@ void Board::deserialize(Stream f)
 }
 void Board::draw()
 {
-  for (int y = 0; y < layout_height; y++)
-  {
-    for (int x = 0; x < layout_width; x++)
-    {
-      cells[x + y*layout_width].draw(*this, x, y);
-    }
-  }
-}
-
-opt_board_index_t Board::update()
-{
-  opt_board_index_t p;
   {
     // Draw actions
     float x = theme::gpad;
     for (int i = 0; i < current_actions.len(); i++)
     {
       if (current_actions[i]._data[0] != '+')
+      {
         todo();
+      }
       const char* buf = current_actions[i]._data+1;
       const float w = MeasureTextEx(
         Raylib_fonts[0].font,
@@ -76,6 +66,19 @@ opt_board_index_t Board::update()
       x += w + theme::gpad;
     }
   }
+
+  for (int y = 0; y < layout_height; y++)
+  {
+    for (int x = 0; x < layout_width; x++)
+    {
+      cells[x + y*layout_width].draw(*this, x, y);
+    }
+  }
+}
+
+opt_board_index_t Board::update()
+{
+  opt_board_index_t p;
   {
     // Draw cells
     p = INVALID_BOARD_INDEX;

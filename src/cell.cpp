@@ -21,10 +21,10 @@ Rectangle Cell::get_rect(const Board& board, int x, int y) const
           /board.layout_height
         )
       + theme::gpad
-      + theme::BAR_SIZE.height.sizeMinMax.min,
+      + theme::BAR_SIZE.height.sizeMinMax.min*2.f,
     ((XMAX - theme::gpad*2)/board.layout_width) - theme::gpad, // these -gpads
     (
-      (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min)
+      (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*2.f)
       /board.layout_height
     ) - theme::gpad // are margins, and not paddings, but anyway
   };
@@ -97,8 +97,6 @@ Although this would disable absolute positioning as described in the obf format
 specification.
 */
 opt_board_index_t Cell::update(const Board& board, int x, int y) {
-  if (name._byte_len == 0 || actions.len() == 0)
-    return INVALID_BOARD_INDEX;
   // faster to recompute everytime
   const bool inbounds = CheckCollisionPointRec(ctrl::mpos, rect);
   const Rectangle ideal_rect = get_rect(board, x, y);
@@ -107,24 +105,25 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
   rect.y = Lerp(rect.y, ideal_rect.y, lerp_speed);
   rect.width = Lerp(rect.width, ideal_rect.width, lerp_speed);
   rect.height = Lerp(rect.height, ideal_rect.height, lerp_speed);
-  if (is_folder()) {
-    if (ctrl::mouse_down && inbounds) {
+  if (name._byte_len == 0 || actions.len() == 0)
+    return INVALID_BOARD_INDEX;
+  if (is_folder())
+  {
+    if (ctrl::touch_press && inbounds)
+    {
       current_actions.init();
       return child;
     }
   } else {
-    if (ctrl::mouse_down && inbounds) {
-      if (spring) {
-        if (actions[0]._data[0] == '+') {
-          tts_push(actions[0]);
-          current_actions.assign(actions);
-        }
-        else
-          TraceLog(LOG_WARNING, "Non + actions aren't supported yet.");
-        spring = false;
+    if (ctrl::touch_press && inbounds)
+    {
+      if (actions[0]._data[0] == '+')
+      {
+        tts_push(actions[0]);
+        current_actions.assign(actions);
       }
-    } else {
-      spring = true;
+      else
+        TraceLog(LOG_WARNING, "Non + actions aren't supported yet.");
     }
   }
   return INVALID_BOARD_INDEX;

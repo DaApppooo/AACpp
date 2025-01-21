@@ -123,5 +123,4 @@ void destroy_res()
   }
   texs.destroy();
   boards.destroy();
-  assert(!current_actions.is_owned());
 }

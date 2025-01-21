@@ -150,7 +150,7 @@ int main()
   while (!WindowShouldClose())
   {
     Clay_SetLayoutDimensions({XMAX, YMAX});
-    Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::mouse_down);
+    Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::touch_press);
     Clay_BeginLayout();
 
       CLAY(
@@ -258,7 +258,9 @@ int main()
       board_with_index(current).draw();
     EndDrawing();
 
-    ctrl::mouse_down = IsMouseButtonDown(MOUSE_LEFT_BUTTON);
+    // NOTE: Raylib provides compatibility with touch screen
+    // without use of a different function
+    ctrl::touch_press = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
     ctrl::mpos = GetMousePosition();
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
@@ -272,6 +274,7 @@ int main()
         if (is_board_index(board_with_index(current).cells[0].parent))
         {
           current = board_with_index(current).cells[0].parent;
+          current_actions.init();
         }
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_backspace"))))
