@@ -24,7 +24,9 @@ It uses [Raylib](https://github.com/raysan5/raylib/) for general window
 operations, input, etc..., mostly [Clay](https://github.com/nicbarker/clay) for
 layout (waiting for the grid feature to use it for everything), and stb_image
 to fix some problems with raylib. To ask for files,
-[Native File Dialog](https://github.com/mlabbe/nativefiledialog) was used.
+[Native File Dialog](https://github.com/mlabbe/nativefiledialog) was used. And
+for settings management, for now, [ansi C ini](https://github.com/rxi/ini.git)
+is used.
 
 ## Usage
 
