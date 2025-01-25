@@ -46,24 +46,35 @@ void Board::draw()
       const float w = MeasureTextEx(
         Raylib_fonts[0].font,
         buf,
-        theme::FONT_SIZE,
+        theme::font_size,
         theme::TEXT_SPACING
       ).x;
       if (x + w > XMAX-theme::gpad)
         // TODO: Add a button to let the user see other available actions.
         break;
+      DrawRectangleRounded(
+        {
+          x + theme::text_space_width,
+          theme::BAR_SIZE.height.sizeMinMax.min + theme::gpad/2.f,
+          w + theme::gpad*2.f - theme::text_space_width,
+          theme::font_size+5.f + theme::gpad/2.f
+        },
+        0.75f,
+        16,
+        CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_field_bg_color)
+      );
       DrawTextEx(
         Raylib_fonts[0].font,
         buf,
         {
-          x,
+          x + theme::gpad,
           theme::BAR_SIZE.height.sizeMinMax.min + theme::gpad
         },
-        theme::FONT_SIZE,
+        theme::font_size,
         theme::TEXT_SPACING,
         CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
       );
-      x += w + theme::gpad;
+      x += w + theme::gpad*3.f;
     }
   }
 

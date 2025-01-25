@@ -13,7 +13,7 @@
 list<Texture> texs;
 list<Board> boards;
 Clay_TextElementConfig font;
-Texture btns[4];
+Texture btns[5];
 
 Ref<list<FixedString>> current_actions;
 
@@ -76,16 +76,23 @@ int init_res(Ref<Stream> s)
 
   current_actions.init();
 
-  Raylib_fonts[0].font = LoadFontEx("res/font.ttf", theme::FONT_SIZE*2, nullptr, -1);
+  Raylib_fonts[0].font = LoadFontEx("res/font.ttf", theme::font_size*2, nullptr, -1);
   font.fontId = 0;
-  font.fontSize = theme::FONT_SIZE;
+  font.fontSize = theme::font_size;
   font.letterSpacing = theme::TEXT_SPACING;
   font.textColor = theme::text_color;
   font.lineHeight = 1;
   font.wrapMode = CLAY_TEXT_WRAP_NONE;
   Clay__MeasureText = Raylib_MeasureText;
+  theme::text_space_width = MeasureTextEx(
+    Raylib_fonts[0].font,
+    " ",
+    theme::font_size,
+    theme::TEXT_SPACING
+  ).x;
 
 
+  btns[BTI_OPT] = LoadTexture("res/opt.png");
   btns[BTI_BACKSPACE] = LoadTexture("res/kb.png");
   btns[BTI_CLEAR] = LoadTexture("res/cl.png");
   btns[BTI_PLAY] = LoadTexture("res/pa.png");

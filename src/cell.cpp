@@ -17,14 +17,14 @@ Rectangle Cell::get_rect(const Board& board, int x, int y) const
   return {
     x * ((XMAX - theme::gpad*2)/board.layout_width) + theme::gpad,
     y * (
-          (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*2.f)
+          (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*1.5f)
           /board.layout_height
         )
       + theme::gpad
-      + theme::BAR_SIZE.height.sizeMinMax.min*2.f,
+      + theme::BAR_SIZE.height.sizeMinMax.min*1.5f,
     ((XMAX - theme::gpad*2)/board.layout_width) - theme::gpad, // these -gpads
     (
-      (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*2.f)
+      (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*1.5f)
       /board.layout_height
     ) - theme::gpad // are margins, and not paddings, but anyway
   };
@@ -47,14 +47,14 @@ void Cell::draw(const Board& board, int x, int y) const
     rect,
     background // this is now default CLAY_COLOR_TO_RAYLIB_COLOR(theme::cell_color)
   );
-  Vector2 txtm = {0.0f, theme::FONT_SIZE};
+  Vector2 txtm = {0.0f, (float)theme::font_size};
   if (name.len() != 0)
   {
     const char* buf = name._data;
     txtm = MeasureTextEx(
       Raylib_fonts[0].font,
       buf,
-      theme::FONT_SIZE,
+      theme::font_size,
       theme::TEXT_SPACING
     );
     DrawTextEx(
@@ -64,7 +64,7 @@ void Cell::draw(const Board& board, int x, int y) const
                 rect.x + rect.width/2.f - txtm.x/2.f,
                 rect.y + rect.height - txtm.y
              },
-               theme::FONT_SIZE,
+               theme::font_size,
                theme::TEXT_SPACING,
                CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
              );
@@ -100,7 +100,7 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
   // faster to recompute everytime
   const bool inbounds = CheckCollisionPointRec(ctrl::mpos, rect);
   const Rectangle ideal_rect = get_rect(board, x, y);
-  const float lerp_speed = 0.1f;
+  const float lerp_speed = 1.f;
   rect.x = Lerp(rect.x, ideal_rect.x, lerp_speed);
   rect.y = Lerp(rect.y, ideal_rect.y, lerp_speed);
   rect.width = Lerp(rect.width, ideal_rect.width, lerp_speed);

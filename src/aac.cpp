@@ -33,13 +33,14 @@ int main()
 
   {
     // SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    SetTargetFPS(30);
+    SetTargetFPS(15);
     Clay_Raylib_Initialize(1600, 900, "aacpp", FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
   }
 
   init_tts();
+  theme_load();
 
   {
     clay_req_mem = Clay_MinMemorySize();
@@ -172,6 +173,14 @@ int main()
                 .layoutDirection = CLAY_LEFT_TO_RIGHT
           })
         ) {
+          CLAY( // app options icon (possible additional board editing tools)
+            CLAY_ID("btn_options"),
+            CLAY_RECTANGLE({.color=theme::command_background}),
+            CLAY_LAYOUT({
+              .sizing = theme::ICON_SIZE
+            }),
+            CLAY_IMAGE({btns+BTI_OPT, theme::IMG_SCALE})
+          ) {};
           CLAY( // parent board icon
             CLAY_ID("btn_parent"),
             CLAY_RECTANGLE({.color=theme::command_background}),
@@ -181,7 +190,7 @@ int main()
             CLAY_IMAGE({btns+BTI_UP, theme::IMG_SCALE})
           ) {};
           CLAY( // input text
-            CLAY_RECTANGLE({.color=theme::TEXT_FIELD_BG_COLOR}),
+            CLAY_RECTANGLE({.color=theme::text_field_bg_color}),
             CLAY_LAYOUT({
               .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)},
               .padding = theme::gpad,
@@ -251,7 +260,12 @@ int main()
       }
 
     render_cmds = Clay_EndLayout();
-    
+
+    // NOTE: update before drawing. Weird visual bugs can happen because of
+    // possible animations.
+    // TODO: If no animations are necessary in productoin, remove left code
+    // residues
+    opt_new_board = board_with_index(current).update();
     BeginDrawing();
       ClearBackground(BLACK);
       Clay_Raylib_Render(render_cmds);
@@ -264,7 +278,6 @@ int main()
     ctrl::mpos = GetMousePosition();
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
-    opt_new_board = board_with_index(current).update();
     if (is_board_index(opt_new_board))
       current = opt_new_board;
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
@@ -279,10 +292,12 @@ int main()
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_backspace"))))
       {
+        current_actions.init();
         tts_backspace();
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_clear"))))
       {
+        current_actions.init();
         tts_clear();
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_play"))))

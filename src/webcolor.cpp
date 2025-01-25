@@ -1,6 +1,7 @@
 #include "webcolor.hpp"
 #include "utils.hpp"
 #include <cstdlib>
+#include <raylib.h>
 #include <string>
 
 #ifdef DEBUG
@@ -53,6 +54,7 @@ inline int atou8(const char* p)
 
 Color color_parse_or(const char* s, Color fallback)
 {
+  const char* const o = s;
   if (s == nullptr)
     return fallback;
   if (*s == 0)
@@ -163,8 +165,34 @@ Color color_parse_or(const char* s, Color fallback)
   && s[3] == 'a'
   && s[4] == '('
   ) {
-    
+    int components[4];
+    s += 5;
+    for (int i = 0; i < 4; i++)
+    {
+      // Modifications will be reverted back
+      char* comma = (char*)s;
+      while (*comma != ',' && *comma != ')' && *comma != 0)
+        comma++;
+      if (*comma == 0 || (*comma == ')' && i < 2))
+      {
+        WARN("[WEBCOLOR] Invalid rgba format.");
+        return ret;
+      }
+      *comma = 0;
+      components[i] = atou8(s);
+      if (i == 2)
+        *comma = ')'; 
+      else
+        *comma = ','; 
+      s = comma+1;
+    }
+    ret.r = components[0];
+    ret.g = components[1];
+    ret.b = components[2];
+    ret.a = components[3];
   }
+  else
+    TraceLog(LOG_WARNING, "[WEBCOLOR] Unknown color expression '%s'.", o);
   return ret;
 }
 
