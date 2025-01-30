@@ -28,7 +28,7 @@ from configparser import ConfigParser
 from subprocess import Popen, PIPE
 
 def svg2png(data: bytes) -> bytes:
-    f = Popen(['cairosvg', '-W', '300', '-H', '300', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
+    f = Popen(['cairosvg', '-u', '-W', '300', '-H', '300', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
     f.stdin.write(data)
     f.stdin.flush()
     f.stdin.close()
@@ -345,13 +345,14 @@ def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | No
         raw = base64.b64decode(src[cur2:])
         if extension.lower() == 'svg':
             raw = svg2png(raw)
-    elif (extension := src[src.rfind('.'):]) in SUPPORTED_IMAGE_FORMATS:
-        with z.open(src, 'rb') as _f_image:
+    elif (extension := src[src.rfind('.')+1:].lower()) in SUPPORTED_IMAGE_FORMATS:
+        with z.open(src) as _f_image:
             raw =_f_image.read()
         if extension.lower() == 'svg':
             raw = svg2png(raw)
     else:
-        expect(False, f">Unknown image source information format ({repr(src[:30])}{'...' if len(src) >= 30 else ''}).")
+        print(extension)
+        expect(False, f">Unknown image source information format ({repr(src[:50])}{'...' if len(src) >= 50 else ''}).")
     # Last checks just to make sure everything is good:
     try:
         pil_img = Image.open(io.BytesIO(raw))
@@ -374,7 +375,7 @@ def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | No
 def find_position(id: str, dbl: list[list[str]]):
     for y, l in enumerate(dbl):
         for x, check_id in enumerate(l):
-            if check_id == id:
+            if str(check_id) == str(id):
                 return (x,y)
     expect(False, f"Could not find cell with {id=} in grid.")
 
@@ -414,27 +415,28 @@ def parse_board(
         c.border = ERROR_COLOR
         c.name = b.get('label') or "" # Not always specified
         c.actions = []
-        if b['image_id'] not in cobz.textures:
-            img_src = None
-            for i in obf['images']:
-                if i['id'] == b['id']:
-                    if 'url' in i:
-                        img_src = i['url']
-                    elif 'data' in i:
-                        img_src = i['data']
-                    else:
-                        want(False, '>No known image format found.')
-                    # TODO: add other keys that give an image source/data
-                    break
-            else:
-                c.tex_id = -1
-                c.obz_tex_id = None
-            if raw := load_img_raw(z, img_src, c.name):
-                cobz.textures[b['image_id']] = raw
-                c.obz_tex_id = b['image_id']
-            else:
-                c.tex_id = -1
-                c.obz_tex_id = None
+        if 'image_id' in b:
+            if b['image_id'] not in cobz.textures:
+                img_src = None
+                for i in obf['images']:
+                    if i['id'] == b['id']:
+                        if 'url' in i:
+                            img_src = i['url']
+                        elif 'data' in i:
+                            img_src = i['data']
+                        else:
+                            want(False, '>No known image format found.')
+                        # TODO: add other keys that give an image source/data
+                        break
+                else:
+                    c.tex_id = -1
+                    c.obz_tex_id = None
+                if raw := load_img_raw(z, img_src, c.name):
+                    cobz.textures[b['image_id']] = raw
+                    c.obz_tex_id = b['image_id']
+                else:
+                    c.tex_id = -1
+                    c.obz_tex_id = None
         if 'load_board' in b:
             for id, path in manifest['paths']['boards'].items():
                 if path == b['load_board']['path']:
@@ -466,8 +468,11 @@ def parse_file(filename: str) -> CompiledOBZ:
     with z.open('manifest.json', 'r') as _f_manifest:
         manifest = json.load(_f_manifest)
     expect(manifest['format'] == "open-board-0.1", f"Unknown board set format: {repr(manifest['format'])}. Expected 'open-board-0.1' instead.")
-    want(len(manifest['paths']['images']) == 0, "Image specification in manifest.json is not supported.")
+    # want(len(manifest['paths']['images']) == 0, "Image specification in manifest.json is not supported.")
     want(len(manifest['paths']['sounds']) == 0, "Sound specification in manifest.json is not supported.")
+    print("Preloading referenced images:")
+    for img_id, path in manifest['paths']['images'].items():
+        cobz.textures[str(img_id)] = load_img_raw(z, path, "<image preloading: no cell name>")
     for board_id, board_path in manifest['paths']['boards'].items():
         with z.open(board_path, 'r') as _f_board:
             cobz.boards.append(
