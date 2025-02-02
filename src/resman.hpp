@@ -6,7 +6,17 @@
 #include <raylib.h>
 
 using String = list<char>;
-extern list<Texture> texs;
+struct TextureCargo
+{
+  Texture tex;
+  int32_t seek : 30;
+  bool ideal_state : 1; // ideal state for loaded, used to give direction
+                        // to the loading process
+  bool loaded : 1;
+};
+
+extern FILE* source_cobz;
+extern list<TextureCargo> texs;
 extern Clay_TextElementConfig font;
 extern Texture btns[5];
 extern Ref<list<FixedString>> current_actions;
@@ -27,6 +37,8 @@ struct Board;
 
 void TextureDumpSave(Texture tex, Stream s);
 void TextureDumpLoad(Texture& tex, Stream s);
+void hold_tex(int valid_tex_id);
+void drop_tex(int valid_tex_id);
 
 board_index_t alloc_board();
 opt_board_index_t board_index_from_pointer(const Board* const b);

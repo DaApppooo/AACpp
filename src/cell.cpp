@@ -47,46 +47,66 @@ void Cell::draw(const Board& board, int x, int y) const
     rect,
     background // this is now default CLAY_COLOR_TO_RAYLIB_COLOR(theme::cell_color)
   );
+  if (is_folder())
+  {
+    DrawRectangleRec(
+      {
+        rect.x+rect.width-30.f, rect.y,
+        30.f,
+        20.f
+      },
+      border // this is now default CLAY_COLOR_TO_RAYLIB_COLOR(theme::cell_color)
+    );
+  }
   Vector2 txtm = {0.0f, (float)theme::font_size};
   if (name.len() != 0)
   {
+    constexpr float SCALE_DOWN_STEP_FACTOR = 1.2f; // MUST BE STRICTLY OVER 1
     const char* buf = name._data;
-    txtm = MeasureTextEx(
+    float font_size = theme::font_size*SCALE_DOWN_STEP_FACTOR;
+    do {
+      font_size /= SCALE_DOWN_STEP_FACTOR;
+      txtm = MeasureTextEx(
+        Raylib_fonts[0].font,
+        buf,
+        font_size,
+        theme::TEXT_SPACING
+      );
+    } while (txtm.x > rect.width);
+    DrawTextEx(
       Raylib_fonts[0].font,
       buf,
-      theme::font_size,
-      theme::TEXT_SPACING
+      {
+        rect.x + rect.width/2.f - txtm.x/2.f,
+        rect.y + rect.height - txtm.y
+      },
+      font_size,
+      theme::TEXT_SPACING,
+      CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
     );
-    DrawTextEx(
-               Raylib_fonts[0].font,
-               buf,
-               {
-                rect.x + rect.width/2.f - txtm.x/2.f,
-                rect.y + rect.height - txtm.y
-             },
-               theme::font_size,
-               theme::TEXT_SPACING,
-               CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
-             );
   }
   if (tex_id != -1)
   {
-    const float w = texs[tex_id].width;
-    const float h = texs[tex_id].height;
-    const float ratio = w/h;
-    DrawTexturePro(
-      texs[tex_id],
-      {0, 0, w, h},
-      {
-        rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y))/2.f,
-        rect.y,
-        ratio*(rect.height-txtm.y),
-        rect.height - txtm.y
-      },
-      {0,0},
-      0,
-      WHITE
-    );
+    assert(texs[tex_id].ideal_state);
+    if (texs[tex_id].loaded)
+    {
+      const float w = texs[tex_id].tex.width;
+      const float h = texs[tex_id].tex.height;
+      const float ratio = w/h;
+      DrawTexturePro(
+        texs[tex_id].tex,
+        {0, 0, w, h},
+        {
+          rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y))/2.f,
+          rect.y,
+          ratio*(rect.height-txtm.y),
+          rect.height - txtm.y
+        },
+        {0,0},
+        0,
+        WHITE
+      );
+    }
   }
 }
 
@@ -151,7 +171,16 @@ void Cell::deserialize(Stream f)
   char buf[3];
   i64 size;
   f.read(buf, 3);
-  assert(memcmp(buf, "CLL", 3) == 0);
+  if (memcmp(buf, "CLL", 3) != 0)
+  {
+    TraceLog(
+      LOG_ERROR,
+      "Miss alignement, expected to read CLL, read %c%c%c instead (position %p)",
+      buf[0], buf[1], buf[2],
+      (void*)(ptrdiff_t)(ftell(f._f) - 3)
+    );
+    abort();
+  }
   tex_id = f.read<int>();
   name.deserialize(f._f);
   size = f.read<i64>();

@@ -1,7 +1,12 @@
 #include "resman.hpp"
 #include "board.hpp"
 #include "list.hpp"
+#include "proc.hpp"
 #include "theme.hpp"
+#include "utils.hpp"
+#include <cstdint>
+#include <cstdio>
+#include <unistd.h>
 #define NO_CLAY
 #include "clay.h"
 #include <cstdlib>
@@ -10,23 +15,27 @@
 #include <stb/stb_image.h>
 #include "rlclay.h"
 
-list<Texture> texs;
+constexpr int PROC_TEXLOADER_LIFE_BIT = 0b01;
+constexpr int PROC_TEXLOADER_CH_BIT   = 0b10;
+Proc proc_texloader;
+int proc_texloader_status;
+list<TextureCargo> texs;
 list<Board> boards;
 Clay_TextElementConfig font;
 Texture btns[5];
+FILE* source_cobz;
 
 Ref<list<FixedString>> current_actions;
 
 void TextureDumpLoad(Texture& tex, Stream s)
 {
-  static char buf[6];
-  int c, buf_pos, channels;
-  isize size;
+  static char buf[3];
+  int channels;
   Image temp;
   s.read(buf, 3);
   assert(memcmp(buf, "IMG", 3) == 0); // if this fails, you're not reading a texture
   temp.data = stbi_load_from_file(s._f, &temp.width, &temp.height, &channels, 0);
-  
+
   if (temp.data == nullptr)
   {
     TraceLog(LOG_ERROR, "Failed to read one image from file.");
@@ -43,6 +52,20 @@ void TextureDumpLoad(Texture& tex, Stream s)
   tex = LoadTextureFromImage(temp);
   UnloadImage(temp);
   TraceLog(LOG_INFO, "Successfuly loaded one texture from file !");
+}
+
+// Just moves the file pointer forward
+void TextureFakeLoad(Stream s)
+{
+  static char buf[3];
+  int channels;
+  Image temp;
+  s.read(buf, 3);
+  assert(memcmp(buf, "IMG", 3) == 0); // if this fails, you're not reading a texture
+  // stbi doesn't implement this wihout memory allocation
+  // so we have to actually do this even though it's useless
+  void* p = stbi_load_from_file(s._f, &temp.width, &temp.height, &channels, 0);
+  free(p);
 }
 
 board_index_t alloc_board()
@@ -69,10 +92,71 @@ extern
                               Clay_TextElementConfig *config
                             );
 
+void proc_texloader_func()
+{
+  Stream s = {source_cobz};
+  for (isize i = 0; i < texs.len(); i++)
+  {
+    texs[i].seek = ftell(s._f);
+    TextureFakeLoad(s);
+    if (i % 256 == 0)
+      TraceLog(LOG_INFO, "TEXLOADER: Loading offsets (%i/%i)", i, texs.len());
+  }
+  TraceLog(LOG_INFO, "TEXLOADER: Loaded offsets !");
+  while (proc_texloader_status & PROC_TEXLOADER_LIFE_BIT)
+  {
+    // add a little of process sleep to keep the cpu usage of this process low.
+    TraceLog(LOG_INFO, "A");
+    WaitTime(0.3);
+    TraceLog(LOG_INFO, "B");
+    for (int i = 0; i < texs.len(); i++)
+    {
+      if (i % 256 == 0)
+        TraceLog(LOG_INFO, "C (%i/%i)", i, texs.len());
+      if (texs[i].ideal_state && !texs[i].loaded)
+      {
+        fseek(source_cobz, texs[i].seek, SEEK_SET);
+        TextureDumpLoad(texs[i].tex, {source_cobz});
+        texs[i].loaded = 1;
+      }
+      else if (!texs[i].ideal_state && texs[i].loaded)
+      {
+        UnloadTexture(texs[i].tex);
+        texs[i].loaded = 0;
+      }
+    }
+  }
+  assert(false);
+  for (int i = 0; i < texs.len(); i++)
+  {
+    if (texs[i].loaded)
+    {
+      UnloadTexture(texs[i].tex);
+      texs[i].loaded = 0;
+    }
+  }
+}
+
+void hold_tex(int valid_tex_id)
+{
+  if (texs[valid_tex_id].loaded)
+    return;
+  texs[valid_tex_id].ideal_state = 1;
+}
+
+void drop_tex(int valid_tex_id)
+{
+  if (!texs[valid_tex_id].loaded)
+    return;
+  texs[valid_tex_id].ideal_state = 0;
+}
+
 int init_res(Ref<Stream> s)
 {
   assert(sizeof(isize)==8);
-  isize tex_count, board_count;
+  isize board_count, tex_count;
+
+  source_cobz = s._f; // global set
 
   current_actions.init();
 
@@ -91,7 +175,6 @@ int init_res(Ref<Stream> s)
     theme::TEXT_SPACING
   ).x;
 
-
   btns[BTI_OPT] = LoadTexture("res/opt.png");
   btns[BTI_BACKSPACE] = LoadTexture("res/kb.png");
   btns[BTI_CLEAR] = LoadTexture("res/cl.png");
@@ -101,15 +184,6 @@ int init_res(Ref<Stream> s)
   texs.init();
   boards.init();
 
-  tex_count = s.read<isize>();
-  texs.prealloc(tex_count);
-  for (isize i = 0; i < tex_count; i++)
-  {
-    Texture tex;
-    TextureDumpLoad(tex, s);
-    texs.push(tex);
-  }
-
   board_count = s.read<isize>();
   boards.prealloc(board_count);
   for (isize i = 0; i < board_count; i++)
@@ -118,7 +192,27 @@ int init_res(Ref<Stream> s)
     b.deserialize(s);
     boards.push(b);
   }
+  
+  tex_count = s.read<isize>();
+  texs.prealloc(tex_count);
+  for (isize i = 0; i < tex_count; i++)
+  {
+    // Texture tex;
+    // TextureDumpLoad(tex, s);
+    Texture tex;
+    tex.id = 0;
+    TextureCargo cargo;
+    cargo.loaded = 0;
+    cargo.ideal_state = 0;
+    // cargo.seek = ftell(s._f); Moved in proc_texloader_func
+    cargo.tex = tex;
+    // TextureFakeLoad(s); Same ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    texs.push(cargo);
+  }
 
+  proc_texloader_status = PROC_TEXLOADER_LIFE_BIT;
+  proc_texloader.launch(&proc_texloader_func);
+  
   return EXIT_SUCCESS;
 }
 
@@ -126,8 +220,10 @@ void destroy_res()
 {
   UnloadFont(Raylib_fonts[0].font);
   for (int i = 0; i < texs.len(); i++) {
-    UnloadTexture(texs[i]);
+    drop_tex(i);
   }
+  proc_texloader_status &= ~PROC_TEXLOADER_LIFE_BIT; // kill
+  proc_texloader.join();
   texs.destroy();
   boards.destroy();
 }

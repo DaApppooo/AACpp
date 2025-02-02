@@ -91,30 +91,30 @@ int main()
           ClearBackground(
             CLAY_COLOR_TO_RAYLIB_COLOR(theme::background_color)
           );
-          const int w = MeasureText("Loading...", 50);
+          const int w = MeasureText(
+            "Compiling board... (done once per board set)",
+            50
+          );
           DrawText(
-            "Loading...",
+            "Compiling board... (done once per board set)",
             int(XMAX)/2 - w/2,
             YMAX/2 - 25,
             50,
             CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
           );
-          DrawCircleV(
-            {
-              XMAX/2.f + cosf(throbber_func(t)*2.f*PI)*20.f,
-              2.f*YMAX/3.f + sinf(throbber_func(t)*2.f*PI)*20.f
-            },
-            7.5f,
-            WHITE
-          );
-          DrawCircleV(
-            {
-              XMAX/2.f + cosf(throbber_func(t*0.8f)*2.f*PI)*20.f,
-              2.f*YMAX/3.f + sinf(throbber_func(t*0.8f)*2.f*PI)*20.f
-            },
-            7.5f,
-            WHITE
-          );
+#define THROBBER(F) \
+          DrawCircleV( \
+            { \
+              XMAX/2.f + cosf(throbber_func(t*(F))*2.f*PI)*20.f, \
+              2.f*YMAX/3.f + sinf(throbber_func(t*(F))*2.f*PI)*20.f \
+            }, \
+            7.5f, \
+            WHITE \
+          )
+        THROBBER(1);
+        THROBBER(0.8);
+        THROBBER(0.6);
+        THROBBER(0.4);
         EndDrawing();
         dt = GetFrameTime();
         t += dt;
@@ -131,7 +131,7 @@ int main()
       //  because of possible compiler shenanigans.
       compiled_board_path = TextFormat("%s.cobz", unknown_board_path);
     }
-    
+
     board_src = {fopen(compiled_board_path, "rb")};
     if (board_src._f == nullptr)
     {
@@ -145,9 +145,9 @@ int main()
     {
       return EXIT_FAILURE;
     }
-    fclose(board_src._f);
   }
 
+  board_with_index(current).hold();
   while (!WindowShouldClose())
   {
     Clay_SetLayoutDimensions({XMAX, YMAX});
@@ -180,6 +180,12 @@ int main()
               .sizing = theme::ICON_SIZE
             }),
             CLAY_IMAGE({btns+BTI_OPT, theme::IMG_SCALE})
+          ) {};
+          CLAY( // SAFETY MARGIN
+            theme::TRANSPARENT_RECT,
+            CLAY_LAYOUT({
+              .sizing = theme::SAFETY_MARGIN
+            })
           ) {};
           CLAY( // parent board icon
             CLAY_ID("btn_parent"),
@@ -216,6 +222,12 @@ int main()
               .sizing = theme::ICON_SIZE
             }),
             CLAY_IMAGE({btns+BTI_CLEAR, theme::IMG_SCALE})
+          ) {};
+          CLAY( // SAFETY MARGIN
+            theme::TRANSPARENT_RECT,
+            CLAY_LAYOUT({
+              .sizing = theme::SAFETY_MARGIN
+            })
           ) {};
           CLAY( // play input icon
             CLAY_ID("btn_play"),
@@ -279,15 +291,21 @@ int main()
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
     if (is_board_index(opt_new_board))
+    {
+      board_with_index(current).drop();
       current = opt_new_board;
+      board_with_index(current).hold();
+    }
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_parent"))))
       {
         if (is_board_index(board_with_index(current).cells[0].parent))
         {
+          board_with_index(current).drop();
           current = board_with_index(current).cells[0].parent;
           current_actions.init();
+          board_with_index(current).hold();
         }
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_backspace"))))
@@ -306,6 +324,7 @@ int main()
       }
     }
   }
+  board_with_index(current).drop();
 
 SAFELY_EXIT:
 

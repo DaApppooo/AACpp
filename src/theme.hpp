@@ -18,6 +18,7 @@ namespace theme
   // constexpr Clay_Sizing CELL_SIZE = { CLAY_SIZING_FIXED(345), CLAY_SIZING_FIXED(200) };
   constexpr Clay_Sizing ICON_SIZE = { CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100) };
   constexpr Clay_Sizing BAR_SIZE = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(130) };
+  constexpr Clay_Sizing SAFETY_MARGIN = { CLAY_SIZING_FIXED(50), CLAY_SIZING_GROW() };
   constexpr Clay_Dimensions IMG_SCALE = { 512.f, 512.f };
   constexpr Clay_RectangleElementConfig TRANSPARENT_RECT = { .color = { 0, 0, 0, 0 } };
   constexpr uint16_t TEXT_SPACING = 2;

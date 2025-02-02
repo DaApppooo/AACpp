@@ -16,7 +16,7 @@ import json
 from sys import argv, stderr, exit
 import zipfile as zipf
 from struct import pack
-from typing import Tuple
+from typing import Tuple, Self
 import requests as rq
 from PIL import Image, UnidentifiedImageError
 import os
@@ -26,6 +26,9 @@ from time import sleep
 import traceback
 from configparser import ConfigParser
 from subprocess import Popen, PIPE
+from threading import Thread
+import time
+import pickle
 
 def svg2png(data: bytes) -> bytes:
     f = Popen(['cairosvg', '-u', '-W', '300', '-H', '300', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
@@ -191,6 +194,7 @@ LEGACY_COLORS = {
 }
 LEGACY_COLORS = { k:pack('>i', int(v[1:], 16)) for k,v in LEGACY_COLORS.items() }
 ERROR_COLOR = bytes([0, 0, 0, 0])
+_SAVE_CRASH_FILE = open(f"savecrash{int(time.time())}.dat", 'wb')
 
 def expect(cond: bool, err_msg: str):
     if not cond:
@@ -244,6 +248,19 @@ class Cell:
     obz_tex_id: str | None
     obz_id: str
     obz_xy: Tuple[int, int]
+    def init(self, xy: None | Tuple[int, int] = None) -> Self:
+        self.name = ""
+        self.tex_id = -1
+        self.parent = -1
+        self.child = -1
+        self.background = ERROR_COLOR
+        self.border = ERROR_COLOR
+        self.actions = []
+        self.obz_child_id = None
+        self.obz_tex_id = None
+        self.obz_id = None
+        self.obz_xy = xy
+        return self
     def serialize(self) -> bytes:
         self.background = self.background or ERROR_COLOR
         self.border = self.border or ERROR_COLOR
@@ -363,7 +380,7 @@ def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | No
         ext = pil_img.format.lower()
         if ext == 'webp':
             buf = io.BytesIO()
-            pil_img.save(buf, 'png')
+            pil_img.save(buf, 'png', optimize=True)
             raw = buf.read()
         else:
             expect(ext in SUPPORTED_IMAGE_FORMATS, f'>Unsupported image format {repr(pil_img.format.lower())}. See README.md for the list of supported image formats.')
@@ -437,6 +454,8 @@ def parse_board(
                 else:
                     c.tex_id = -1
                     c.obz_tex_id = None
+            else:
+                c.obz_tex_id = b['image_id']
         if 'load_board' in b:
             for id, path in manifest['paths']['boards'].items():
                 if path == b['load_board']['path']:
@@ -459,20 +478,69 @@ def parse_board(
         board.cells.append(c)
     # Sorting cells based on position
     board.cells.sort(key=lambda c: c.obz_xy[::-1]) # '[::-1]' because y position is the most important when sorting, followed by x positions.
-    return board   
+    if len(board.cells) == 0:
+        board.cells = [Cell().init((x, y)) for y in range(board.h) for x in range(board.w)]
+    else:
+        for y in range(board.h):
+            for x in range(board.w):
+                if x+y*board.w >= len(board.cells) or board.cells[x+y*board.w].obz_xy != (x, y):
+                    board.cells.insert(x+y*board.w, Cell().init((x,y)))
+    return board
 
-def parse_file(filename: str) -> CompiledOBZ:
+THREAD_COUNT = 1
+MIN_BATCH_SIZE = 256
+def _image_preloader_batch(z: zipf.ZipFile, batch: Tuple[Tuple[str, str], ...], inout: dict[str, bytes], thid: int):
+    for img_id, path in tqdm(batch, f"Thread {thid}", position=thid, nrows=THREAD_COUNT+1):
+        inout[str(img_id)] = load_img_raw(z, path, "<image preloading: no cell name>")
+
+def parse_file(filename: str, import_images_from: str | None = None) -> CompiledOBZ:
+    global THREAD_COUNT
     cobz = CompiledOBZ()
     z = zipf.ZipFile(filename, 'r')
+    if import_images_from:
+        cobz.textures = pickle.load(open(import_images_from, "rb"))
     expect("manifest.json" in (i.filename for i in z.filelist), f"Missing manifest.json in {filename} !")
     with z.open('manifest.json', 'r') as _f_manifest:
         manifest = json.load(_f_manifest)
     expect(manifest['format'] == "open-board-0.1", f"Unknown board set format: {repr(manifest['format'])}. Expected 'open-board-0.1' instead.")
     # want(len(manifest['paths']['images']) == 0, "Image specification in manifest.json is not supported.")
     want(len(manifest['paths']['sounds']) == 0, "Sound specification in manifest.json is not supported.")
-    print("Preloading referenced images:")
-    for img_id, path in manifest['paths']['images'].items():
-        cobz.textures[str(img_id)] = load_img_raw(z, path, "<image preloading: no cell name>")
+    if not import_images_from:
+        print("Preloading referenced images:")
+        full = tuple(manifest['paths']['images'].items())
+        if len(full) >= MIN_BATCH_SIZE*2:
+            # If we can split at least two batches, then we do
+            for unit_count in range(os.cpu_count(), 1, -1):
+                if len(full) >= MIN_BATCH_SIZE * unit_count:
+                    TH_COUNT = os.cpu_count()
+                    SIZES = [len(full) // os.cpu_count() for _ in range(TH_COUNT)]
+                    SIZES[0] += len(full) - (len(full)//os.cpu_count()*os.cpu_count())
+                    break
+            else:
+                assert False, "This branch shouldn't be reached"
+            out_batches = [{} for _ in range(TH_COUNT)]
+            in_batches = [tuple() for i in range(TH_COUNT)]
+            s = 0
+            for i in range(TH_COUNT):
+                in_batches[i] = full[s:s+SIZES[i]]
+                s += SIZES[i]
+            assert s == len(full), f"These should be equal: {s=} == {len(full)=}"
+            THREAD_COUNT = TH_COUNT
+            thrds: list[Thread] = [
+                Thread(target=_image_preloader_batch, args=(z, in_batches[i], out_batches[i], i))
+                for i in range(1,TH_COUNT)
+            ]
+            for i in thrds:
+                i.start()
+            _image_preloader_batch(z, in_batches[0], out_batches[0], 0)
+            for i in thrds:
+                i.join()
+            for batch in out_batches:
+                cobz.textures |= batch
+            pickle.dump(cobz.textures, _SAVE_CRASH_FILE)
+        else:
+            for img_id, path in tqdm():
+                cobz.textures[str(img_id)] = load_img_raw(z, path, "<image preloading: no cell name>")
     for board_id, board_path in manifest['paths']['boards'].items():
         with z.open(board_path, 'r') as _f_board:
             cobz.boards.append(
@@ -513,24 +581,25 @@ def parse_file(filename: str) -> CompiledOBZ:
     return cobz
 
 if __name__ == '__main__':
-    if len(argv) != 3:
+    if len(argv) < 3:
         print(help)
         exit(1)
     try:
-        cobz = parse_file(argv[1])
+        cobz = parse_file(argv[1], None if len(argv) == 3 else argv[3])
         with open(argv[2], 'wb') as f:
             # NOTE: using 'q' because resman.cpp reads a i64
-            f.write(pack('q', len(cobz.textures)))
-            for _, tex in cobz.textures:
-                f.write(b'IMG')
-                f.write(tex)
             f.write(pack('q', len(cobz.boards)))
             for board in cobz.boards:
                 f.write(b'BRD')
                 f.write(board.serialize())
+            f.write(pack('q', len(cobz.textures)))
+            for _, tex in cobz.textures:
+                f.write(b'IMG')
+                f.write(tex)
         print("Done !")
     except Exception:
         perror(traceback.format_exc())
+        _SAVE_CRASH_FILE.close()
         exit(1)
     exit(0)
 

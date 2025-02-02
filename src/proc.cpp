@@ -26,10 +26,25 @@ void Proc::launch(const char* ex, char* const* argv)
   }
   return;
 }
+void Proc::launch(void(*f)())
+{
+  child = fork();
+  if (child == 0)
+  {
+    f();
+    exit(0);
+  }
+  return;
+}
 
 void Proc::kill()
 {
   ::kill(child, SIGKILL);
+}
+
+void Proc::join()
+{
+  waitpid(child, 0, 0);
 }
 
 bool Proc::ended()
