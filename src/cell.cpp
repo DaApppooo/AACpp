@@ -88,7 +88,7 @@ void Cell::draw(const Board& board, int x, int y) const
   if (tex_id != -1)
   {
     assert(texs[tex_id].ideal_state);
-    if (texs[tex_id].loaded)
+    if (texs[tex_id].setup_if_possible())
     {
       const float w = texs[tex_id].tex.width;
       const float h = texs[tex_id].tex.height;

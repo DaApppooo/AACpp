@@ -9,10 +9,23 @@ using String = list<char>;
 struct TextureCargo
 {
   Texture tex;
+  Image ioload; // can't load into vram in another thread
+                // io is done in the second thread
+                // this one then has to do the memory move
   int32_t seek : 30;
   bool ideal_state : 1; // ideal state for loaded, used to give direction
                         // to the loading process
   bool loaded : 1;
+  inline bool setup_if_possible()
+  {
+    if (loaded && ideal_state && ioload.data != nullptr)
+    {
+      tex = LoadTextureFromImage(ioload);
+      UnloadImage(ioload);
+      ioload.data = nullptr;
+    }
+    return loaded && ideal_state;
+  }
 };
 
 extern FILE* source_cobz;

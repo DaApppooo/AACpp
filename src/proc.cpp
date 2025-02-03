@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <pthread.h>
 #include <raylib.h>
 
 #ifdef __linux__
@@ -26,25 +27,10 @@ void Proc::launch(const char* ex, char* const* argv)
   }
   return;
 }
-void Proc::launch(void(*f)())
-{
-  child = fork();
-  if (child == 0)
-  {
-    f();
-    exit(0);
-  }
-  return;
-}
 
 void Proc::kill()
 {
   ::kill(child, SIGKILL);
-}
-
-void Proc::join()
-{
-  waitpid(child, 0, 0);
 }
 
 bool Proc::ended()
@@ -64,5 +50,17 @@ bool Proc::ended()
   return ::kill(child, 0) == ESRCH || zero_count > 1;
 }
 
-#endif
+void Thread::launch(void*(*f)(void*), void* data)
+{
+  pthread_create(&child, NULL, f, data);
+}
+
+void* Thread::join()
+{
+  void* ret;
+  pthread_join(child, &ret);
+  return ret;
+}
+
+#endif /* __linux__ */
 

@@ -15,10 +15,10 @@
 #include <stb/stb_image.h>
 #include "rlclay.h"
 
-constexpr int PROC_TEXLOADER_LIFE_BIT = 0b01;
-constexpr int PROC_TEXLOADER_CH_BIT   = 0b10;
-Proc proc_texloader;
-int proc_texloader_status;
+constexpr int THREAD_TEXLOADER_LIFE_BIT = 0b01;
+constexpr int THREAD_TEXLOADER_CH_BIT   = 0b10;
+Thread thread_texloader;
+int thread_texloader_status;
 list<TextureCargo> texs;
 list<Board> boards;
 Clay_TextElementConfig font;
@@ -27,11 +27,10 @@ FILE* source_cobz;
 
 Ref<list<FixedString>> current_actions;
 
-void TextureDumpLoad(Texture& tex, Stream s)
+void TextureDumpLoad(Image& temp, Stream s)
 {
   static char buf[3];
   int channels;
-  Image temp;
   s.read(buf, 3);
   assert(memcmp(buf, "IMG", 3) == 0); // if this fails, you're not reading a texture
   temp.data = stbi_load_from_file(s._f, &temp.width, &temp.height, &channels, 0);
@@ -48,10 +47,9 @@ void TextureDumpLoad(Texture& tex, Stream s)
   else if (channels == 2) temp.format = PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA;
   else if (channels == 3) temp.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8;
   else if (channels == 4) temp.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+  else TraceLog(LOG_WARNING, "Unknown channel-format relation for channels=%i", channels);
 
-  tex = LoadTextureFromImage(temp);
-  UnloadImage(temp);
-  TraceLog(LOG_INFO, "Successfuly loaded one texture from file !");
+  TraceLog(LOG_INFO, "Successfuly loaded one image from file !");
 }
 
 // Just moves the file pointer forward
@@ -92,7 +90,7 @@ extern
                               Clay_TextElementConfig *config
                             );
 
-void proc_texloader_func()
+void* thread_texloader_func(void*)
 {
   Stream s = {source_cobz};
   for (isize i = 0; i < texs.len(); i++)
@@ -103,20 +101,16 @@ void proc_texloader_func()
       TraceLog(LOG_INFO, "TEXLOADER: Loading offsets (%i/%i)", i, texs.len());
   }
   TraceLog(LOG_INFO, "TEXLOADER: Loaded offsets !");
-  while (proc_texloader_status & PROC_TEXLOADER_LIFE_BIT)
+  while (thread_texloader_status & THREAD_TEXLOADER_LIFE_BIT)
   {
     // add a little of process sleep to keep the cpu usage of this process low.
-    TraceLog(LOG_INFO, "A");
     WaitTime(0.3);
-    TraceLog(LOG_INFO, "B");
     for (int i = 0; i < texs.len(); i++)
     {
-      if (i % 256 == 0)
-        TraceLog(LOG_INFO, "C (%i/%i)", i, texs.len());
       if (texs[i].ideal_state && !texs[i].loaded)
       {
         fseek(source_cobz, texs[i].seek, SEEK_SET);
-        TextureDumpLoad(texs[i].tex, {source_cobz});
+        TextureDumpLoad(texs[i].ioload, {source_cobz});
         texs[i].loaded = 1;
       }
       else if (!texs[i].ideal_state && texs[i].loaded)
@@ -126,28 +120,29 @@ void proc_texloader_func()
       }
     }
   }
-  assert(false);
   for (int i = 0; i < texs.len(); i++)
   {
+    if (texs[i].ioload.data != nullptr)
+    {
+      UnloadImage(texs[i].ioload);
+      texs[i].ioload.data = nullptr;
+    }
     if (texs[i].loaded)
     {
       UnloadTexture(texs[i].tex);
       texs[i].loaded = 0;
     }
   }
+  return nullptr;
 }
 
 void hold_tex(int valid_tex_id)
 {
-  if (texs[valid_tex_id].loaded)
-    return;
   texs[valid_tex_id].ideal_state = 1;
 }
 
 void drop_tex(int valid_tex_id)
 {
-  if (!texs[valid_tex_id].loaded)
-    return;
   texs[valid_tex_id].ideal_state = 0;
 }
 
@@ -210,8 +205,8 @@ int init_res(Ref<Stream> s)
     texs.push(cargo);
   }
 
-  proc_texloader_status = PROC_TEXLOADER_LIFE_BIT;
-  proc_texloader.launch(&proc_texloader_func);
+  thread_texloader_status = THREAD_TEXLOADER_LIFE_BIT;
+  thread_texloader.launch(&thread_texloader_func, nullptr);
   
   return EXIT_SUCCESS;
 }
@@ -222,8 +217,8 @@ void destroy_res()
   for (int i = 0; i < texs.len(); i++) {
     drop_tex(i);
   }
-  proc_texloader_status &= ~PROC_TEXLOADER_LIFE_BIT; // kill
-  proc_texloader.join();
+  thread_texloader_status &= ~THREAD_TEXLOADER_LIFE_BIT; // kill
+  thread_texloader.join();
   texs.destroy();
   boards.destroy();
 }

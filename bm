@@ -16,6 +16,8 @@ BIN = "bin/aac" # Bin path is deduced from this.
 CONFIG = "config/bm.json" # Same here
 EXT = ".cpp"
 EXAMPLE = "./bin/aac"
+BENCHMARK_TIME = 30 # in seconds
+BENCHMARK = f"sudo powertop --csv --sample={BENCHMARK_TIME} & (sleep 1 ; {EXAMPLE})"
 
 def rls(path_, filter = lambda x: True):
 	for target in listdir(path_):
@@ -119,6 +121,12 @@ if __name__ == "__main__":
 	match argv[1]:
 		case "all":
 			compile_all(check_ch_time=False, cflags="-O0")
+			yeet(0)
+		case "benchmark":
+			compile_all(cflags="-O3 -D PRODUCTION")
+			link_all()
+			if err := shell(BENCHMARK):
+				yeet(err)
 			yeet(0)
 		case "production":
 			compile_all(check_ch_time=False, cflags="-O3")

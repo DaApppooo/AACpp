@@ -2,3 +2,5 @@ temp/*
 bin/*
 vgcore*
 savecrash*
+*.csv
+*/*.csv
