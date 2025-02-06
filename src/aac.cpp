@@ -1,4 +1,5 @@
 #include "nfd.h"
+#include "options.hpp"
 #include "resman.hpp"
 #include <csignal>
 #include <cstdio>
@@ -18,6 +19,11 @@ inline float throbber_func(float x)
   static constexpr float speed = 4.f;
   return (sinf(speed*x)+1.f)/speed + x;
 }
+inline void board_update(
+  Clay_RenderCommandArray& render_cmds,
+  opt_board_index_t& opt_new_board,
+  board_index_t& current
+);
 
 int main()
 {
@@ -40,8 +46,8 @@ int main()
   }
 
   init_tts();
-  theme_load();
-
+  init_options();
+  
   {
     clay_req_mem = Clay_MinMemorySize();
     allocated_mem = malloc(clay_req_mem);
@@ -152,137 +158,15 @@ int main()
   {
     Clay_SetLayoutDimensions({XMAX, YMAX});
     Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::touch_press);
-    Clay_BeginLayout();
 
-      CLAY(
-        CLAY_ID("body"),
-        CLAY_RECTANGLE({ .color = theme::background_color }),
-        CLAY_LAYOUT({
-                    .sizing = theme::GROW,
-                    .layoutDirection = CLAY_TOP_TO_BOTTOM
-                  })
-      ) {
-        CLAY(
-          CLAY_ID("header"),
-          CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
-          CLAY_LAYOUT({
-                .sizing = theme::BAR_SIZE,
-                .padding = theme::gpad,
-                .childGap = 10,
-                .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
-                .layoutDirection = CLAY_LEFT_TO_RIGHT
-          })
-        ) {
-          CLAY( // app options icon (possible additional board editing tools)
-            CLAY_ID("btn_options"),
-            CLAY_RECTANGLE({.color=theme::command_background}),
-            CLAY_LAYOUT({
-              .sizing = theme::ICON_SIZE
-            }),
-            CLAY_IMAGE({btns+BTI_OPT, theme::IMG_SCALE})
-          ) {};
-          CLAY( // SAFETY MARGIN
-            theme::TRANSPARENT_RECT,
-            CLAY_LAYOUT({
-              .sizing = theme::SAFETY_MARGIN
-            })
-          ) {};
-          CLAY( // parent board icon
-            CLAY_ID("btn_parent"),
-            CLAY_RECTANGLE({.color=theme::command_background}),
-            CLAY_LAYOUT({
-              .sizing = theme::ICON_SIZE
-            }),
-            CLAY_IMAGE({btns+BTI_UP, theme::IMG_SCALE})
-          ) {};
-          CLAY( // input text
-            CLAY_RECTANGLE({.color=theme::text_field_bg_color}),
-            CLAY_LAYOUT({
-              .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)},
-              .padding = theme::gpad,
-              .childGap = 10,
-              .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_CENTER},
-              .layoutDirection = CLAY_LEFT_TO_RIGHT,
-            })
-          ) {
-            CLAY_TEXT(CLAY_STRING(tts_fill_final_buffer()), CLAY_TEXT_CONFIG(font));
-          };
-          CLAY( // backspace input icon
-            CLAY_ID("btn_backspace"),
-            CLAY_RECTANGLE({.color=theme::command_background}),
-            CLAY_LAYOUT({
-              .sizing = theme::ICON_SIZE
-            }),
-            CLAY_IMAGE({btns+BTI_BACKSPACE, theme::IMG_SCALE})
-          ) {};
-          CLAY( // clear input icon
-            CLAY_ID("btn_clear"),
-            CLAY_RECTANGLE({.color=theme::command_background}),
-            CLAY_LAYOUT({
-              .sizing = theme::ICON_SIZE
-            }),
-            CLAY_IMAGE({btns+BTI_CLEAR, theme::IMG_SCALE})
-          ) {};
-          CLAY( // SAFETY MARGIN
-            theme::TRANSPARENT_RECT,
-            CLAY_LAYOUT({
-              .sizing = theme::SAFETY_MARGIN
-            })
-          ) {};
-          CLAY( // play input icon
-            CLAY_ID("btn_play"),
-            CLAY_RECTANGLE({.color=theme::command_background}),
-            CLAY_LAYOUT({
-              .sizing = theme::ICON_SIZE
-            }),
-            CLAY_IMAGE({btns+BTI_PLAY, theme::IMG_SCALE})
-          ) {
-          };
-        };
-        CLAY(
-          CLAY_ID("actions"),
-          CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
-          CLAY_LAYOUT({
-                .sizing = theme::BAR_SIZE,
-                .padding = theme::gpad,
-                .childGap = 10,
-                .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
-                .layoutDirection = CLAY_LEFT_TO_RIGHT
-          })
-        ) {
-          // Filled without clay
-          // FUTURE: Add button IF overflow to scroll between options
-        }
-        CLAY(
-          CLAY_ID("content"),
-          CLAY_LAYOUT({
-                  .sizing = theme::GROW,
-                  .padding = {theme::gpad, theme::gpad},
-                  .childGap = 10,
-                  .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_TOP},
-                  .layoutDirection = CLAY_LEFT_TO_RIGHT
-          }),
-          CLAY_SCROLL({
-            .vertical = true
-          })
-        )
-        {
-          // FUTURE: use clay grid layout system
-        };
-      }
-
-    render_cmds = Clay_EndLayout();
-
-    // NOTE: update before drawing. Weird visual bugs can happen because of
-    // possible animations.
-    // TODO: If no animations are necessary in productoin, remove left code
-    // residues
-    opt_new_board = board_with_index(current).update();
-    BeginDrawing();
-      ClearBackground(BLACK);
-      Clay_Raylib_Render(render_cmds);
-      board_with_index(current).draw();
-    EndDrawing();
+    if (options_open)
+    {
+      options_update();
+    }
+    else
+    {
+      board_update(render_cmds, opt_new_board, current);
+    }
 
     // NOTE: Raylib provides compatibility with touch screen
     // without use of a different function
@@ -308,6 +192,10 @@ int main()
           board_with_index(current).hold();
         }
       }
+      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_parent"))))
+      {
+        options_show();
+      }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_backspace"))))
       {
         current_actions.init();
@@ -329,12 +217,152 @@ int main()
 SAFELY_EXIT:
 
   free(allocated_mem);
-  
+
+  destroy_options();
   destroy_res();
   destroy_tts();
   CloseWindow();
   
   return 0;
+}
+
+
+inline void board_update(
+  Clay_RenderCommandArray& render_cmds,
+  opt_board_index_t& opt_new_board,
+  board_index_t& current
+) {
+  Clay_BeginLayout();
+
+    CLAY(
+      CLAY_ID("body"),
+      CLAY_RECTANGLE({ .color = theme::background_color }),
+      CLAY_LAYOUT({
+                  .sizing = theme::GROW,
+                  .layoutDirection = CLAY_TOP_TO_BOTTOM
+                })
+    ) {
+      CLAY(
+        CLAY_ID("header"),
+        CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
+        CLAY_LAYOUT({
+              .sizing = theme::BAR_SIZE,
+              .padding = theme::gpad,
+              .childGap = 10,
+              .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
+              .layoutDirection = CLAY_LEFT_TO_RIGHT
+        })
+      ) {
+        CLAY( // app options icon (possible additional board editing tools)
+          CLAY_ID("btn_options"),
+          CLAY_RECTANGLE({.color=theme::command_background}),
+          CLAY_LAYOUT({
+            .sizing = theme::ICON_SIZE
+          }),
+          CLAY_IMAGE({btns+BTI_OPT, theme::IMG_SCALE})
+        ) {};
+        CLAY( // SAFETY MARGIN
+          theme::TRANSPARENT_RECT,
+          CLAY_LAYOUT({
+            .sizing = theme::SAFETY_MARGIN
+          })
+        ) {};
+        CLAY( // parent board icon
+          CLAY_ID("btn_parent"),
+          CLAY_RECTANGLE({.color=theme::command_background}),
+          CLAY_LAYOUT({
+            .sizing = theme::ICON_SIZE
+          }),
+          CLAY_IMAGE({btns+BTI_UP, theme::IMG_SCALE})
+        ) {};
+        CLAY( // input text
+          CLAY_RECTANGLE({.color=theme::text_field_bg_color}),
+          CLAY_LAYOUT({
+            .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)},
+            .padding = theme::gpad,
+            .childGap = 10,
+            .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_CENTER},
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+          })
+        ) {
+          CLAY_TEXT(CLAY_STRING(tts_fill_final_buffer()), CLAY_TEXT_CONFIG(font));
+        };
+        CLAY( // backspace input icon
+          CLAY_ID("btn_backspace"),
+          CLAY_RECTANGLE({.color=theme::command_background}),
+          CLAY_LAYOUT({
+            .sizing = theme::ICON_SIZE
+          }),
+          CLAY_IMAGE({btns+BTI_BACKSPACE, theme::IMG_SCALE})
+        ) {};
+        CLAY( // clear input icon
+          CLAY_ID("btn_clear"),
+          CLAY_RECTANGLE({.color=theme::command_background}),
+          CLAY_LAYOUT({
+            .sizing = theme::ICON_SIZE
+          }),
+          CLAY_IMAGE({btns+BTI_CLEAR, theme::IMG_SCALE})
+        ) {};
+        CLAY( // SAFETY MARGIN
+          theme::TRANSPARENT_RECT,
+          CLAY_LAYOUT({
+            .sizing = theme::SAFETY_MARGIN
+          })
+        ) {};
+        CLAY( // play input icon
+          CLAY_ID("btn_play"),
+          CLAY_RECTANGLE({.color=theme::command_background}),
+          CLAY_LAYOUT({
+            .sizing = theme::ICON_SIZE
+          }),
+          CLAY_IMAGE({btns+BTI_PLAY, theme::IMG_SCALE})
+        ) {
+        };
+      };
+      CLAY(
+        CLAY_ID("actions"),
+        CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
+        CLAY_LAYOUT({
+              .sizing = theme::BAR_SIZE,
+              .padding = theme::gpad,
+              .childGap = 10,
+              .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
+              .layoutDirection = CLAY_LEFT_TO_RIGHT
+        })
+      ) {
+        // Filled without clay
+        // FUTURE: Add button IF overflow to scroll between options
+      }
+      CLAY(
+        CLAY_ID("content"),
+        CLAY_LAYOUT({
+                .sizing = theme::GROW,
+                .padding = {theme::gpad, theme::gpad},
+                .childGap = 10,
+                .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_TOP},
+                .layoutDirection = CLAY_LEFT_TO_RIGHT
+        }),
+        CLAY_SCROLL({
+          .vertical = true
+        })
+      )
+      {
+        // FUTURE: use clay grid layout system
+      };
+    }
+
+  render_cmds = Clay_EndLayout();
+
+  // NOTE: update before drawing. Weird visual bugs can happen because of
+  // possible animations.shearing
+  // TODO: If no animations are necessary in productoin, remove left code
+  // residues
+  opt_new_board = board_with_index(current).update();
+  BeginDrawing();
+    ClearBackground(BLACK);
+    Clay_Raylib_Render(render_cmds);
+    board_with_index(current).draw();
+  EndDrawing();
 }
 
 

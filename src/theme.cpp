@@ -7,6 +7,7 @@
 
 namespace theme
 {
+  const char* default_board = nullptr;
   Clay_Color background_color;
   Clay_Color text_color;
   Clay_Color text_field_bg_color;
@@ -47,7 +48,7 @@ inline int int_parse_or(const char* s, int fallback)
 void theme_load()
 {
   // char* buffer = (char*)TextFormat("");
-  const char* p;
+  const char* p = nullptr;
   ini_t* cf = ini_load("config/defaults.ini");
   LDPWARN("global", "background")
     theme::background_color = ~ color_parse_or(p, {53, 53, 53, 255});

@@ -21,6 +21,12 @@ namespace theme
   constexpr Clay_Sizing SAFETY_MARGIN = { CLAY_SIZING_FIXED(50), CLAY_SIZING_GROW() };
   constexpr Clay_Dimensions IMG_SCALE = { 512.f, 512.f };
   constexpr Clay_RectangleElementConfig TRANSPARENT_RECT = { .color = { 0, 0, 0, 0 } };
+  constexpr Clay_LayoutConfig OPTION_LAYOUT = {
+    .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(100) },
+    .padding = { 16, 16 },
+    .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_CENTER},
+    .layoutDirection = CLAY_LEFT_TO_RIGHT
+  };
   constexpr uint16_t TEXT_SPACING = 2;
 }
 

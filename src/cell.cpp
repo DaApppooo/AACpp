@@ -97,10 +97,10 @@ void Cell::draw(const Board& board, int x, int y) const
         texs[tex_id].tex,
         {0, 0, w, h},
         {
-          rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y))/2.f,
-          rect.y,
-          ratio*(rect.height-txtm.y),
-          rect.height - txtm.y
+          rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y-theme::gpad))/2.f,
+          rect.y + theme::gpad,
+          ratio*(rect.height-txtm.y-theme::gpad),
+          rect.height - txtm.y - theme::gpad
         },
         {0,0},
         0,
