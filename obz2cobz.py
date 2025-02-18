@@ -29,6 +29,8 @@ from subprocess import Popen, PIPE
 from threading import Thread
 import time
 import pickle
+import math
+from pprint import pprint
 
 def svg2png(data: bytes) -> bytes:
     f = Popen(['cairosvg', '-u', '-W', '300', '-H', '300', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
@@ -298,6 +300,48 @@ class CompiledOBZ:
     def __init__(self):
         self.textures: dict[str, bytes] | Tuple[Tuple[str, bytes], ...] = {}
         self.boards: list[Board] | Tuple[Board, ...] = []
+    def find_ideal_texblock_size(self):
+        raws = list(self.textures.values())
+        avg = [0,0]
+        pw2loss = 0
+        pw2loss_ratiosum = 0
+        pw2size_selections = {}
+        nocomp_min = None
+        for raw in raws:
+            img = Image.open(io.BytesIO(raw))
+            if nocomp_min is None:
+                nocomp_min = [img.width, img.height]
+            else:
+                nocomp_min = [
+                    math.gcd(nocomp_min[0], img.width),
+                    math.gcd(nocomp_min[1], img.height)
+                ]
+            print(img.width, img.height)
+            avg = [avg[0] + img.width, avg[1] + img.height]
+            dims = [img.width, img.height]
+            pw2_log2 = [math.log2(dims[i]) for i in range(2)]
+            lower = [2**int(pw2_log2[i]) for i in range(2)]
+            higher = [2**int(pw2_log2[i]+1) for i in range(2)]
+            selected = [
+                min(lower[i], higher[i], key=lambda x: abs(dims[i] - x))
+                for i in range(2)
+            ]
+            PW2_LOCAL_LOSS = (dims[0]*dims[1]) - (selected[0]*selected[1])
+            if tuple(selected) not in pw2size_selections:
+                pw2size_selections[tuple(selected)] = 1
+            else:
+                pw2size_selections[tuple(selected)] += 1
+            pw2loss += PW2_LOCAL_LOSS
+            pw2loss_ratiosum += PW2_LOCAL_LOSS/(dims[0]*dims[1])
+            
+        print("Avg:", avg[0]/len(self.textures), avg[1]/len(self.textures))
+        print("0 loss block size:", nocomp_min[0], nocomp_min[1], '(the bigger the better)')
+        
+        print("pow2 loss(-):", pw2loss, 'pixels')
+        print("pow2 loss(-) ratio sum:", round(pw2loss_ratiosum*100,2), f'%/{len(self.textures)}')
+        print("pow2 loss(-) ratio avg:", round(pw2loss_ratiosum/len(self.textures)*100,2), '%')
+        print("pow2 size selections stats (size : count):")
+        pprint(pw2size_selections)
     def find_board_with_name(self, name: str) -> int | None:
         for idx, board in enumerate(self.boards):
             if board.name == name:
@@ -586,6 +630,13 @@ if __name__ == '__main__':
         exit(1)
     try:
         cobz = parse_file(argv[1], None if len(argv) == 3 else argv[3])
+        if len(argv) == 5:
+            match argv[4]:
+                case "stats":
+                    cobz.find_ideal_texblock_size()
+                case unknown:
+                    print(f"Unknown keyword {repr(unknown)}")
+            quit(0)
         with open(argv[2], 'wb') as f:
             # NOTE: using 'q' because resman.cpp reads a i64
             f.write(pack('q', len(cobz.boards)))
@@ -601,6 +652,7 @@ if __name__ == '__main__':
         perror(traceback.format_exc())
         _SAVE_CRASH_FILE.close()
         exit(1)
+    _SAVE_CRASH_FILE.close()
     exit(0)
 
 

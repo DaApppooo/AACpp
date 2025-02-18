@@ -15,10 +15,7 @@
 #include <stb/stb_image.h>
 #include "rlclay.h"
 
-constexpr int THREAD_TEXLOADER_LIFE_BIT = 0b01;
-constexpr int THREAD_TEXLOADER_CH_BIT   = 0b10;
-Thread thread_texloader;
-int thread_texloader_status;
+Texture glob_tex;
 list<TextureCargo> texs;
 list<Board> boards;
 Clay_TextElementConfig font;
@@ -52,20 +49,6 @@ void TextureDumpLoad(Image& temp, Stream s)
   TraceLog(LOG_INFO, "Successfuly loaded one image from file !");
 }
 
-// Just moves the file pointer forward
-void TextureFakeLoad(Stream s)
-{
-  static char buf[3];
-  int channels;
-  Image temp;
-  s.read(buf, 3);
-  assert(memcmp(buf, "IMG", 3) == 0); // if this fails, you're not reading a texture
-  // stbi doesn't implement this wihout memory allocation
-  // so we have to actually do this even though it's useless
-  void* p = stbi_load_from_file(s._f, &temp.width, &temp.height, &channels, 0);
-  free(p);
-}
-
 board_index_t alloc_board()
 {
   boards.push(Board{});
@@ -90,61 +73,7 @@ extern
                               Clay_TextElementConfig *config
                             );
 
-void* thread_texloader_func(void*)
-{
-  Stream s = {source_cobz};
-  for (isize i = 0; i < texs.len(); i++)
-  {
-    texs[i].seek = ftell(s._f);
-    TextureFakeLoad(s);
-    if (i % 256 == 0)
-      TraceLog(LOG_INFO, "TEXLOADER: Loading offsets (%i/%i)", i, texs.len());
-  }
-  TraceLog(LOG_INFO, "TEXLOADER: Loaded offsets !");
-  while (thread_texloader_status & THREAD_TEXLOADER_LIFE_BIT)
-  {
-    // add a little of process sleep to keep the cpu usage of this process low.
-    WaitTime(0.3);
-    for (int i = 0; i < texs.len(); i++)
-    {
-      if (texs[i].ideal_state && !texs[i].loaded)
-      {
-        fseek(source_cobz, texs[i].seek, SEEK_SET);
-        TextureDumpLoad(texs[i].ioload, {source_cobz});
-        texs[i].loaded = 1;
-      }
-      else if (!texs[i].ideal_state && texs[i].loaded)
-      {
-        UnloadTexture(texs[i].tex);
-        texs[i].loaded = 0;
-      }
-    }
-  }
-  for (int i = 0; i < texs.len(); i++)
-  {
-    if (texs[i].ioload.data != nullptr)
-    {
-      UnloadImage(texs[i].ioload);
-      texs[i].ioload.data = nullptr;
-    }
-    if (texs[i].loaded)
-    {
-      UnloadTexture(texs[i].tex);
-      texs[i].loaded = 0;
-    }
-  }
-  return nullptr;
-}
 
-void hold_tex(int valid_tex_id)
-{
-  texs[valid_tex_id].ideal_state = 1;
-}
-
-void drop_tex(int valid_tex_id)
-{
-  texs[valid_tex_id].ideal_state = 0;
-}
 
 int init_res(Ref<Stream> s)
 {
@@ -187,26 +116,11 @@ int init_res(Ref<Stream> s)
     b.deserialize(s);
     boards.push(b);
   }
-  
+
+  TextureDumpLoad(glob_tex, s);
   tex_count = s.read<isize>();
   texs.prealloc(tex_count);
-  for (isize i = 0; i < tex_count; i++)
-  {
-    // Texture tex;
-    // TextureDumpLoad(tex, s);
-    Texture tex;
-    tex.id = 0;
-    TextureCargo cargo;
-    cargo.loaded = 0;
-    cargo.ideal_state = 0;
-    // cargo.seek = ftell(s._f); Moved in proc_texloader_func
-    cargo.tex = tex;
-    // TextureFakeLoad(s); Same ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    texs.push(cargo);
-  }
-
-  thread_texloader_status = THREAD_TEXLOADER_LIFE_BIT;
-  thread_texloader.launch(&thread_texloader_func, nullptr);
+  fread(texs.data(), sizeof(TextureCargo), tex_count, s._f);
   
   return EXIT_SUCCESS;
 }
@@ -214,11 +128,7 @@ int init_res(Ref<Stream> s)
 void destroy_res()
 {
   UnloadFont(Raylib_fonts[0].font);
-  for (int i = 0; i < texs.len(); i++) {
-    drop_tex(i);
-  }
-  thread_texloader_status &= ~THREAD_TEXLOADER_LIFE_BIT; // kill
-  thread_texloader.join();
+  UnloadTexture(glob_tex);
   texs.destroy();
   boards.destroy();
 }

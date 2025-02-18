@@ -23,16 +23,4 @@ struct Proc
 #endif
 };
 
-struct Thread
-{
-  // Launch just a function
-  void launch(void*(*f)(void*), void* data);
-  // attach the process back to the parent (call this in the parent)
-  void* join();
-#ifdef __linux__
-  pthread_t child;
-#endif
-};
-
-
 #endif
