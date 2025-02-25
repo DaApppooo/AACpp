@@ -30,6 +30,7 @@ from threading import Thread
 import time
 import pickle
 import math
+from copy import copy
 from pprint import pprint
 
 def svg2png(data: bytes) -> bytes:
@@ -300,25 +301,47 @@ class CompiledOBZ:
     def __init__(self):
         self.textures: dict[str, bytes] | Tuple[Tuple[str, bytes], ...] = {}
         self.boards: list[Board] | Tuple[Board, ...] = []
-    def find_ideal_texblock_size(self):
-        raws = list(self.textures.values())
+    def gen_spritesheet_precursors(self):
+        raws = tuple(dict(self.textures).values())
+        imgs = [Image.open(io.BytesIO(raw)) for raw in raws]
+        size = [None] * len(imgs)
+        i2sq_ncm = None
+        for i, im in enumerate(imgs):
+            size[i] = im.size
         avg = [0,0]
+        # Pow2 (PW2): Adaptive and CPU optimal method
+        # Check for closest power of 2 for image dimensions, and assumes
+        # bins/blocks to be squares with sides which are powers of 2.
+        # Can remove pixels or add pixels to the image depending on the
+        # situation.
         pw2loss = 0
         pw2loss_ratiosum = 0
         pw2size_selections = {}
-        nocomp_min = None
+        # No "Compression" maximum (NCM): Doesn't do shit to original images
+        # Check for the biggest bin possible without modifying images.
+        nocomp_max = None
+        # Image to Square + (I2SQ+): No pixel lost, outputs perfect squares (+)
+        # Finds the closest possible square by adding (transparent) pixels.
+        # + : Tries to fit with previous NCM value
+        # Ex: if an image has dimensions 98x100, then the algorithm will
+        # give a 100x100 image. This is a very interesting step before
+        # computing NCM.
+        i2sq_sizes = []
+        i2sq_ncm = None
+        i2sq_overdraw_avg = 0
         for raw in raws:
             img = Image.open(io.BytesIO(raw))
-            if nocomp_min is None:
-                nocomp_min = [img.width, img.height]
+            # NCM
+            if nocomp_max is None:
+                nocomp_max = [img.width, img.height]
             else:
-                nocomp_min = [
-                    math.gcd(nocomp_min[0], img.width),
-                    math.gcd(nocomp_min[1], img.height)
+                nocomp_max = [
+                    math.gcd(nocomp_max[0], img.width),
+                    math.gcd(nocomp_max[1], img.height)
                 ]
-            print(img.width, img.height)
             avg = [avg[0] + img.width, avg[1] + img.height]
             dims = [img.width, img.height]
+            # PW2
             pw2_log2 = [math.log2(dims[i]) for i in range(2)]
             lower = [2**int(pw2_log2[i]) for i in range(2)]
             higher = [2**int(pw2_log2[i]+1) for i in range(2)]
@@ -326,22 +349,50 @@ class CompiledOBZ:
                 min(lower[i], higher[i], key=lambda x: abs(dims[i] - x))
                 for i in range(2)
             ]
-            PW2_LOCAL_LOSS = (dims[0]*dims[1]) - (selected[0]*selected[1])
+            PW2_LOCAL_LOSS = abs((dims[0]*dims[1]) - (selected[0]*selected[1]))
             if tuple(selected) not in pw2size_selections:
                 pw2size_selections[tuple(selected)] = 1
             else:
                 pw2size_selections[tuple(selected)] += 1
             pw2loss += PW2_LOCAL_LOSS
             pw2loss_ratiosum += PW2_LOCAL_LOSS/(dims[0]*dims[1])
-            
+            # I2SQ
+            I2SQ_T = 0.33333
+            if dims[0] < dims[1]:
+                orig_h = dims[1]
+                if i2sq_ncm is not None:
+                    if math.gcd(dims[1], i2sq_ncm[1]) > dims[1]*I2SQ_T > 1:
+                        pass
+                    else:
+                        dims[1] = round(dims[1]/i2sq_ncm[1])*(i2sq_ncm[1])
+                i2sq_sizes.append([dims[1], dims[1]])
+                i2sq_overdraw_avg += (dims[1]*dims[1]-dims[0]*orig_h)/(dims[0]*orig_h)
+            else:
+                orig_w = dims[0]
+                if i2sq_ncm is not None:
+                    if math.gcd(dims[0], i2sq_ncm[0]) > dims[0]*I2SQ_T > 1:
+                        pass
+                    else:
+                        dims[0] = round(dims[0]/i2sq_ncm[0])*(i2sq_ncm[0])
+                i2sq_sizes.append([dims[0], dims[0]])
+                i2sq_overdraw_avg += (dims[0]*dims[0]-dims[1]*orig_w)/(dims[1]*orig_w)
+            if i2sq_ncm is None:
+                i2sq_ncm = copy(i2sq_sizes[0])
+            else:
+                i2sq_ncm = [math.gcd(i2sq_ncm[i], i2sq_sizes[-1][i]) for i in range(2)]
+            print(img.width, img.height, '--(i2sq)-->', i2sq_sizes[-1])
         print("Avg:", avg[0]/len(self.textures), avg[1]/len(self.textures))
-        print("0 loss block size:", nocomp_min[0], nocomp_min[1], '(the bigger the better)')
+        print("0 loss block size:", nocomp_max[0], nocomp_max[1], '(the bigger the better)')
         
         print("pow2 loss(-):", pw2loss, 'pixels')
         print("pow2 loss(-) ratio sum:", round(pw2loss_ratiosum*100,2), f'%/{len(self.textures)}')
         print("pow2 loss(-) ratio avg:", round(pw2loss_ratiosum/len(self.textures)*100,2), '%')
         print("pow2 size selections stats (size : count):")
         pprint(pw2size_selections)
+        
+        print("i2sq+ 0 loss block size:", i2sq_ncm[0], i2sq_ncm[1])
+        print("i2sq+ average relative \"loss\":", round(100*i2sq_overdraw_avg/len(self.textures),2), '%')
+
     def find_board_with_name(self, name: str) -> int | None:
         for idx, board in enumerate(self.boards):
             if board.name == name:
@@ -630,13 +681,7 @@ if __name__ == '__main__':
         exit(1)
     try:
         cobz = parse_file(argv[1], None if len(argv) == 3 else argv[3])
-        if len(argv) == 5:
-            match argv[4]:
-                case "stats":
-                    cobz.find_ideal_texblock_size()
-                case unknown:
-                    print(f"Unknown keyword {repr(unknown)}")
-            quit(0)
+        cobz.find_ideal_texblock_size()
         with open(argv[2], 'wb') as f:
             # NOTE: using 'q' because resman.cpp reads a i64
             f.write(pack('q', len(cobz.boards)))
