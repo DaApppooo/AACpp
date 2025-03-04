@@ -32,6 +32,7 @@ import pickle
 import math
 from copy import copy
 from pprint import pprint
+from collections import namedtuple
 
 def svg2png(data: bytes) -> bytes:
     f = Popen(['cairosvg', '-u', '-W', '300', '-H', '300', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
@@ -258,7 +259,7 @@ class Cell:
         self.child = -1
         self.background = ERROR_COLOR
         self.border = ERROR_COLOR
-        self.actions = []
+        self.act# Setup rectangles in default positionions = []
         self.obz_child_id = None
         self.obz_tex_id = None
         self.obz_id = None
@@ -297,76 +298,31 @@ class Board:
             res += i.serialize()
         return res
 
+class Rect:
+    def __init__(self):
+        self.x = self.y = self.w = self.h = 0
+        self.locked = False
+
 class CompiledOBZ:
     def __init__(self):
         self.textures: dict[str, bytes] | Tuple[Tuple[str, bytes], ...] = {}
         self.boards: list[Board] | Tuple[Board, ...] = []
     def gen_spritesheet_precursors(self):
-        raws = tuple(dict(self.textures).values())
-        imgs = [Image.open(io.BytesIO(raw)) for raw in raws]
-        size = [None] * len(imgs)
+        Obj = namedtuple("Obj", ("id", "img", "rect"))
+        objs: list[Obj] = [Obj(k,Image.open(io.BytesIO(raw)), Rect()) for i,(k,raw) in enumerate(self.textures.items())]
+        # Setup rectangles in default position and run I2SQ
         i2sq_ncm = None
-        for i, im in enumerate(imgs):
-            size[i] = im.size
-        avg = [0,0]
-        # Pow2 (PW2): Adaptive and CPU optimal method
-        # Check for closest power of 2 for image dimensions, and assumes
-        # bins/blocks to be squares with sides which are powers of 2.
-        # Can remove pixels or add pixels to the image depending on the
-        # situation.
-        pw2loss = 0
-        pw2loss_ratiosum = 0
-        pw2size_selections = {}
-        # No "Compression" maximum (NCM): Doesn't do shit to original images
-        # Check for the biggest bin possible without modifying images.
-        nocomp_max = None
-        # Image to Square + (I2SQ+): No pixel lost, outputs perfect squares (+)
-        # Finds the closest possible square by adding (transparent) pixels.
-        # + : Tries to fit with previous NCM value
-        # Ex: if an image has dimensions 98x100, then the algorithm will
-        # give a 100x100 image. This is a very interesting step before
-        # computing NCM.
-        i2sq_sizes = []
-        i2sq_ncm = None
-        i2sq_overdraw_avg = 0
-        for raw in raws:
-            img = Image.open(io.BytesIO(raw))
-            # NCM
-            if nocomp_max is None:
-                nocomp_max = [img.width, img.height]
-            else:
-                nocomp_max = [
-                    math.gcd(nocomp_max[0], img.width),
-                    math.gcd(nocomp_max[1], img.height)
-                ]
-            avg = [avg[0] + img.width, avg[1] + img.height]
-            dims = [img.width, img.height]
-            # PW2
-            pw2_log2 = [math.log2(dims[i]) for i in range(2)]
-            lower = [2**int(pw2_log2[i]) for i in range(2)]
-            higher = [2**int(pw2_log2[i]+1) for i in range(2)]
-            selected = [
-                min(lower[i], higher[i], key=lambda x: abs(dims[i] - x))
-                for i in range(2)
-            ]
-            PW2_LOCAL_LOSS = abs((dims[0]*dims[1]) - (selected[0]*selected[1]))
-            if tuple(selected) not in pw2size_selections:
-                pw2size_selections[tuple(selected)] = 1
-            else:
-                pw2size_selections[tuple(selected)] += 1
-            pw2loss += PW2_LOCAL_LOSS
-            pw2loss_ratiosum += PW2_LOCAL_LOSS/(dims[0]*dims[1])
-            # I2SQ
-            I2SQ_T = 0.33333
-            if dims[0] < dims[1]:
+        y = 0
+        I2SQ_T = 0.3333
+        for i in range(len(objs)):
+            dims = [objs[i].img.width, objs[i].img.height]
+            if dims[1] > dims[0]:
                 orig_h = dims[1]
                 if i2sq_ncm is not None:
                     if math.gcd(dims[1], i2sq_ncm[1]) > dims[1]*I2SQ_T > 1:
                         pass
                     else:
                         dims[1] = round(dims[1]/i2sq_ncm[1])*(i2sq_ncm[1])
-                i2sq_sizes.append([dims[1], dims[1]])
-                i2sq_overdraw_avg += (dims[1]*dims[1]-dims[0]*orig_h)/(dims[0]*orig_h)
             else:
                 orig_w = dims[0]
                 if i2sq_ncm is not None:
@@ -374,24 +330,42 @@ class CompiledOBZ:
                         pass
                     else:
                         dims[0] = round(dims[0]/i2sq_ncm[0])*(i2sq_ncm[0])
-                i2sq_sizes.append([dims[0], dims[0]])
-                i2sq_overdraw_avg += (dims[0]*dims[0]-dims[1]*orig_w)/(dims[1]*orig_w)
             if i2sq_ncm is None:
                 i2sq_ncm = copy(i2sq_sizes[0])
             else:
                 i2sq_ncm = [math.gcd(i2sq_ncm[i], i2sq_sizes[-1][i]) for i in range(2)]
-            print(img.width, img.height, '--(i2sq)-->', i2sq_sizes[-1])
-        print("Avg:", avg[0]/len(self.textures), avg[1]/len(self.textures))
-        print("0 loss block size:", nocomp_max[0], nocomp_max[1], '(the bigger the better)')
-        
-        print("pow2 loss(-):", pw2loss, 'pixels')
-        print("pow2 loss(-) ratio sum:", round(pw2loss_ratiosum*100,2), f'%/{len(self.textures)}')
-        print("pow2 loss(-) ratio avg:", round(pw2loss_ratiosum/len(self.textures)*100,2), '%')
-        print("pow2 size selections stats (size : count):")
-        pprint(pw2size_selections)
-        
-        print("i2sq+ 0 loss block size:", i2sq_ncm[0], i2sq_ncm[1])
-        print("i2sq+ average relative \"loss\":", round(100*i2sq_overdraw_avg/len(self.textures),2), '%')
+            objs[i].rect.x = 0
+            objs[i].rect.y = y
+            objs[i].rect.w, objs[i].rect.h = dims
+            y += dims[1]
+        objs.sort(key=lambda x: x.rect.h, reverse=True)
+        # Now run down mode simple optimization (+y goes downward)
+        objs[0].rect.locked = objs[1].rect.locked = True
+        H = [objs[i].rect.h  for i in range(len(objs))]
+        B = [objs[0].rect.w - objs[i].rect.w  for i in range(len(objs))]
+        p = 1
+        ph = H[0]
+        for i in range(2, len(objs)):
+            if objs[i].h == objs[0].h:
+                p += 1
+                continue
+            if p == i:
+                continue
+            if H[p] >= objs[i].h:
+                while p > 1:
+                    if B[p] >= objs[i].w:
+                        objs[i].rect.x = objs[0].rect.w - B[p]
+                        objs[i].rect.y = ph
+                        B[p+1] = B[p]
+                        B[p] += objs[i].rect.w
+                        H[p+1] = H[p] - objs[i].rect.h
+                        H[p] = objs[i].rect.h
+                        p -= 1
+                    else:
+                        break
+                
+            
+            
 
     def find_board_with_name(self, name: str) -> int | None:
         for idx, board in enumerate(self.boards):
