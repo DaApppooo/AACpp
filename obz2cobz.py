@@ -33,9 +33,10 @@ import math
 from copy import copy
 from pprint import pprint
 from collections import namedtuple
+from dataclasses import dataclass
 
 def svg2png(data: bytes) -> bytes:
-    f = Popen(['cairosvg', '-u', '-W', '300', '-H', '300', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
+    f = Popen(['cairosvg', '-u', '-W', '128', '-H', '128', '-f', 'png', '-'], stdin=PIPE, stdout=PIPE)
     f.stdin.write(data)
     f.stdin.flush()
     f.stdin.close()
@@ -259,7 +260,7 @@ class Cell:
         self.child = -1
         self.background = ERROR_COLOR
         self.border = ERROR_COLOR
-        self.act# Setup rectangles in default positionions = []
+        self.actions = []
         self.obz_child_id = None
         self.obz_tex_id = None
         self.obz_id = None
@@ -299,74 +300,137 @@ class Board:
         return res
 
 class Rect:
-    def __init__(self):
-        self.x = self.y = self.w = self.h = 0
+    def __init__(self, x=0, y=0, w=0, h=0):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
         self.locked = False
+    def __getitem__(self, idx):
+        return (self.x, self.y, self.w, self.h)[idx]
+    def __setitem__(self, idx, value):
+        (self.x, self.y, self.w, self.h)[idx] = value
+
+@dataclass
+class Obj:
+    id: int
+    img: Image
+    rect: Rect
+@dataclass
+class Fit:
+    rect: Rect
+    obj_idx: int
+
+def could_contain(rbig: Rect, rsmol: Rect):
+    return rbig.w >= rsmol.w and rbig.h >= rsmol.h
 
 class CompiledOBZ:
     def __init__(self):
-        self.textures: dict[str, bytes] | Tuple[Tuple[str, bytes], ...] = {}
+        self.textures: dict[str, bytes] | Tuple[Obj] = {}
         self.boards: list[Board] | Tuple[Board, ...] = []
     def gen_spritesheet_precursors(self):
-        Obj = namedtuple("Obj", ("id", "img", "rect"))
-        objs: list[Obj] = [Obj(k,Image.open(io.BytesIO(raw)), Rect()) for i,(k,raw) in enumerate(self.textures.items())]
+        objs: list[Obj] = [Obj(k,Image.open(io.BytesIO(raw)).convert('RGBA'), Rect(0,0,0,0)) for i,(k,raw) in enumerate(self.textures)]
+        info("Image infos loaded.")
         # Setup rectangles in default position and run I2SQ
-        i2sq_ncm = None
+        # i2sq_ncm = None
+        # I2SQ_T = 0.3333
+        # i2sq_prev_size = None
+        # for i in range(len(objs)):
+        #     dims = [objs[i].img.width, objs[i].img.height]
+        #     if dims[1] > dims[0]:
+        #         orig_h = dims[1]
+        #         if i2sq_ncm is not None:
+        #             if math.gcd(dims[1], i2sq_ncm[1]) > dims[1]*I2SQ_T > 1:
+        #                 pass
+        #             else:
+        #                 dims[1] = round(dims[1]/i2sq_ncm[1])*(i2sq_ncm[1])
+        #     else:
+        #         orig_w = dims[0]
+        #         if i2sq_ncm is not None:
+        #             if math.gcd(dims[0], i2sq_ncm[0]) > dims[0]*I2SQ_T > 1:
+        #                 pass
+        #             else:
+        #                 dims[0] = round(dims[0]/i2sq_ncm[0])*(i2sq_ncm[0])
+        #     if i2sq_ncm is None:
+        #         i2sq_ncm = copy(dims)
+        #     else:
+        #         i2sq_ncm = [math.gcd(i2sq_ncm[i], i2sq_prev_size[i]) for i in range(2)]
+        #     objs[i].rect.x = 0
+        #     objs[i].rect.w, objs[i].rect.h = dims
+        #     i2sq_prev_size = dims
+        MAXW = 0
+        for o in objs:
+          if o.rect.w > 300:
+            o.rect.w =  o.img.width//4
+            o.rect.h = o.img.height//4
+          else:
+            o.rect.w = o.img.width//2
+            o.rect.h = o.img.height//2
+          if o.rect.w > MAXW:
+            MAXW = o.rect.w
+          o.img = o.img.resize((o.rect.w, o.rect.h))
+        objs.sort(key=lambda x: (x.rect.w, x.rect.h), reverse=True) # same as sorting for width. texs are squares
+        minw = objs[-1].rect.w
+        info("Images sorted.")
+        # Set y positions accordingly
         y = 0
-        I2SQ_T = 0.3333
-        for i in range(len(objs)):
-            dims = [objs[i].img.width, objs[i].img.height]
-            if dims[1] > dims[0]:
-                orig_h = dims[1]
-                if i2sq_ncm is not None:
-                    if math.gcd(dims[1], i2sq_ncm[1]) > dims[1]*I2SQ_T > 1:
-                        pass
-                    else:
-                        dims[1] = round(dims[1]/i2sq_ncm[1])*(i2sq_ncm[1])
-            else:
-                orig_w = dims[0]
-                if i2sq_ncm is not None:
-                    if math.gcd(dims[0], i2sq_ncm[0]) > dims[0]*I2SQ_T > 1:
-                        pass
-                    else:
-                        dims[0] = round(dims[0]/i2sq_ncm[0])*(i2sq_ncm[0])
-            if i2sq_ncm is None:
-                i2sq_ncm = copy(i2sq_sizes[0])
-            else:
-                i2sq_ncm = [math.gcd(i2sq_ncm[i], i2sq_sizes[-1][i]) for i in range(2)]
-            objs[i].rect.x = 0
-            objs[i].rect.y = y
-            objs[i].rect.w, objs[i].rect.h = dims
-            y += dims[1]
-        objs.sort(key=lambda x: x.rect.h, reverse=True)
+        for o in objs:
+          o.rect.x = 0
+          o.rect.y = y
+          y += o.rect.h
         # Now run down mode simple optimization (+y goes downward)
-        objs[0].rect.locked = objs[1].rect.locked = True
-        H = [objs[i].rect.h  for i in range(len(objs))]
-        B = [objs[0].rect.w - objs[i].rect.w  for i in range(len(objs))]
-        p = 1
-        ph = H[0]
+        # Probably the worst algorithm i've ever written
+        # avg of o(n^3/2) (maybe even more. I haven't made the math)
+        # but gives what looks like optimal packing (i don't think it is)
+        fits = [Fit(Rect(o.rect.x+o.rect.w, o.rect.y, MAXW - o.rect.w, o.rect.h), i) for i,o in enumerate(objs)]
+        max_dim = [0,0]
+        base_fixed = 1
         for i in range(2, len(objs)):
-            if objs[i].h == objs[0].h:
-                p += 1
-                continue
-            if p == i:
-                continue
-            if H[p] >= objs[i].h:
-                while p > 1:
-                    if B[p] >= objs[i].w:
-                        objs[i].rect.x = objs[0].rect.w - B[p]
-                        objs[i].rect.y = ph
-                        B[p+1] = B[p]
-                        B[p] += objs[i].rect.w
-                        H[p+1] = H[p] - objs[i].rect.h
-                        H[p] = objs[i].rect.h
-                        p -= 1
-                    else:
-                        break
-                
-            
-            
-
+          for j in range(base_fixed, i):
+            if could_contain(fits[j].rect, objs[i].rect):
+              objs[i].rect.x = fits[j].rect.x
+              objs[i].rect.y = fits[j].rect.y
+              fits.insert(
+                j, Fit(
+                  Rect(
+                       objs[i].rect.x + objs[i].rect.w,
+                       objs[i].rect.y,
+                       MAXW - (objs[i].rect.x + objs[i].rect.w),
+                       objs[i].rect.h
+                  ),
+                  i
+              ))
+              fits[j+1].rect.y += objs[i].rect.h
+              fits[j+1].rect.h -= objs[i].rect.h
+              for fi in range(j+2, len(fits)):
+                if fits[fi].obj_idx == i:
+                  del fits[fi]
+                  break
+              for fi in range(fi, len(fits)):
+                fits[fi].rect.y -= objs[i].rect.h
+              for j in range(i+1, len(objs)):
+                objs[j].rect.y -= objs[i].rect.h
+              break
+            if MAXW - (objs[i].rect.x + objs[i].rect.w) <= minw:
+              base_fixed = i+1
+        info("Rects set.")
+        max_dim[0] = MAXW
+        max_dim[1] = max(o.rect.y+o.rect.h for o in objs)
+        info("Spritesheet limits set.")
+        return objs, max_dim
+    def gen_spritesheet(self, objs, dim):
+      print(dim)
+      spritesheet = Image.new('RGBA', dim, (0,0,0,0))
+      for obj in objs:
+        spritesheet.paste(
+            obj.img,
+            (
+                obj.rect.x,
+                obj.rect.y
+            )
+        )
+      self.textures = tuple(objs)
+      return spritesheet
     def find_board_with_name(self, name: str) -> int | None:
         for idx, board in enumerate(self.boards):
             if board.name == name:
@@ -655,7 +719,6 @@ if __name__ == '__main__':
         exit(1)
     try:
         cobz = parse_file(argv[1], None if len(argv) == 3 else argv[3])
-        cobz.find_ideal_texblock_size()
         with open(argv[2], 'wb') as f:
             # NOTE: using 'q' because resman.cpp reads a i64
             f.write(pack('q', len(cobz.boards)))
@@ -663,9 +726,21 @@ if __name__ == '__main__':
                 f.write(b'BRD')
                 f.write(board.serialize())
             f.write(pack('q', len(cobz.textures)))
-            for _, tex in cobz.textures:
-                f.write(b'IMG')
-                f.write(tex)
+            info("Loading spritesheet precursors...")
+            precs = cobz.gen_spritesheet_precursors()
+            info("Loaded spritesheet precursors.")
+            info("Generating spritesheet...")
+            spritesheet  = cobz.gen_spritesheet(*precs)
+            for obj in cobz.textures:
+              f.write(pack('=4f',*obj.rect))
+            buf = io.BytesIO()
+            spritesheet.save(buf, 'png')
+            raw = buf.getvalue()
+            f.write(raw)
+            print(f"size of spritesheet data is {len(raw)}")
+            with open("test.png", 'wb') as im:
+                im.write(raw)
+            info("Generated spritesheet !")
         print("Done !")
     except Exception:
         perror(traceback.format_exc())

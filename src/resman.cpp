@@ -1,10 +1,8 @@
 #include "resman.hpp"
 #include "board.hpp"
 #include "list.hpp"
-#include "proc.hpp"
 #include "theme.hpp"
 #include "utils.hpp"
-#include <cstdint>
 #include <cstdio>
 #include <unistd.h>
 #define NO_CLAY
@@ -16,7 +14,7 @@
 #include "rlclay.h"
 
 Texture glob_tex;
-list<TextureCargo> texs;
+list<TexInfo> texs;
 list<Board> boards;
 Clay_TextElementConfig font;
 Texture btns[5];
@@ -120,7 +118,7 @@ int init_res(Ref<Stream> s)
   TextureDumpLoad(glob_tex, s);
   tex_count = s.read<isize>();
   texs.prealloc(tex_count);
-  fread(texs.data(), sizeof(TextureCargo), tex_count, s._f);
+  fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
   
   return EXIT_SUCCESS;
 }

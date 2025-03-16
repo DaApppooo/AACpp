@@ -12,7 +12,7 @@ extern Clay_TextElementConfig font;
 extern Texture btns[5];
 extern Ref<list<FixedString>> current_actions;
 
-struct TextureCargo
+struct TexInfo
 {
   Rectangle rect;
   inline void draw(Rectangle target)
@@ -24,7 +24,7 @@ struct TextureCargo
     );
   }
 };
-extern list<TextureCargo> texs;
+extern list<TexInfo> texs;
 
 enum BtnRectId
 {
