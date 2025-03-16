@@ -4,3 +4,4 @@ vgcore*
 savecrash*
 *.csv
 */*.csv
+lib/*
