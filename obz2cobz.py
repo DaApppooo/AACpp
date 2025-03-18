@@ -300,16 +300,18 @@ class Board:
         return res
 
 class Rect:
-    def __init__(self, x=0, y=0, w=0, h=0):
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.locked = False
-    def __getitem__(self, idx):
-        return (self.x, self.y, self.w, self.h)[idx]
-    def __setitem__(self, idx, value):
-        (self.x, self.y, self.w, self.h)[idx] = value
+  def __init__(self, x=0, y=0, w=0, h=0):
+    self.x = x
+    self.y = y
+    self.w = w
+    self.h = h
+    self.locked = False
+  def serialize(self) -> bytes:
+    return pack('ffff', self.x, self.y, self.w, self.h)
+  def __getitem__(self, idx):
+    return (self.x, self.y, self.w, self.h)[idx]
+  def __setitem__(self, idx, value):
+    (self.x, self.y, self.w, self.h)[idx] = value
 
 @dataclass
 class Obj:
@@ -723,16 +725,18 @@ if __name__ == '__main__':
             # NOTE: using 'q' because resman.cpp reads a i64
             f.write(pack('q', len(cobz.boards)))
             for board in cobz.boards:
-                f.write(b'BRD')
+                f.write(b'BRD\x00')
                 f.write(board.serialize())
-            f.write(pack('q', len(cobz.textures)))
             info("Loading spritesheet precursors...")
             precs = cobz.gen_spritesheet_precursors()
             info("Loaded spritesheet precursors.")
             info("Generating spritesheet...")
-            spritesheet  = cobz.gen_spritesheet(*precs)
+            spritesheet = cobz.gen_spritesheet(*precs)
+            f.write(pack('q', len(cobz.textures)))
             for obj in cobz.textures:
-              f.write(pack('=4f',*obj.rect))
+              f.write(obj.rect.serialize())
+              print(tuple(obj.rect), obj.rect.serialize())
+            f.write(b"IMG\x00");
             buf = io.BytesIO()
             spritesheet.save(buf, 'png')
             raw = buf.getvalue()

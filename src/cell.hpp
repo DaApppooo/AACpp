@@ -32,18 +32,6 @@ struct Cell
     name._byte_len = 0;
     actions.init();
   }
-  inline void hold()
-  {
-    if (tex_id == -1)
-      return;
-    hold_tex(tex_id);
-  }
-  inline void drop()
-  {
-    if (tex_id == -1)
-      return;
-    drop_tex(tex_id);
-  }
   Rectangle get_rect(const Board& board, int x, int y) const;
   void to_folder(board_index_t current_board);
   void serialize(Stream f);

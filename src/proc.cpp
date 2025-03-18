@@ -50,17 +50,5 @@ bool Proc::ended()
   return ::kill(child, 0) == ESRCH || zero_count > 1;
 }
 
-void Thread::launch(void*(*f)(void*), void* data)
-{
-  pthread_create(&child, NULL, f, data);
-}
-
-void* Thread::join()
-{
-  void* ret;
-  pthread_join(child, &ret);
-  return ret;
-}
-
 #endif /* __linux__ */
 

@@ -17,6 +17,9 @@ struct TexInfo
   Rectangle rect;
   inline void draw(Rectangle target)
   {
+    DrawRectangleLinesEx(
+      target, 2.f, RED
+    );
     DrawTexturePro(
       glob_tex,
       rect, target,

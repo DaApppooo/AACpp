@@ -87,26 +87,15 @@ void Cell::draw(const Board& board, int x, int y) const
   }
   if (tex_id != -1)
   {
-    assert(texs[tex_id].ideal_state);
-    if (texs[tex_id].setup_if_possible())
-    {
-      const float w = texs[tex_id].tex.width;
-      const float h = texs[tex_id].tex.height;
-      const float ratio = w/h;
-      DrawTexturePro(
-        texs[tex_id].tex,
-        {0, 0, w, h},
-        {
-          rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y-theme::gpad))/2.f,
-          rect.y + theme::gpad,
-          ratio*(rect.height-txtm.y-theme::gpad),
-          rect.height - txtm.y - theme::gpad
-        },
-        {0,0},
-        0,
-        WHITE
-      );
-    }
+    const float ratio = texs[tex_id].rect.width/texs[tex_id].rect.height;
+    texs[tex_id].draw(
+      {
+        rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y-theme::gpad))/2.f,
+        rect.y + theme::gpad,
+        ratio*(rect.height-txtm.y-theme::gpad),
+        rect.height - txtm.y - theme::gpad
+      }
+    );
   }
 }
 

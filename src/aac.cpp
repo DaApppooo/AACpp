@@ -1,4 +1,3 @@
-#include "nfd.h"
 #include "options.hpp"
 #include "resman.hpp"
 #include <csignal>
@@ -153,7 +152,6 @@ int main()
     }
   }
 
-  board_with_index(current).hold();
   while (!WindowShouldClose())
   {
     Clay_SetLayoutDimensions({XMAX, YMAX});
@@ -161,7 +159,7 @@ int main()
 
     if (options_open)
     {
-      options_update();
+      options_update(render_cmds);
     }
     else
     {
@@ -176,9 +174,7 @@ int main()
     YMAX = GetScreenHeight();
     if (is_board_index(opt_new_board))
     {
-      board_with_index(current).drop();
       current = opt_new_board;
-      board_with_index(current).hold();
     }
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
@@ -186,10 +182,8 @@ int main()
       {
         if (is_board_index(board_with_index(current).cells[0].parent))
         {
-          board_with_index(current).drop();
           current = board_with_index(current).cells[0].parent;
           current_actions.init();
-          board_with_index(current).hold();
         }
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_parent"))))
@@ -212,7 +206,6 @@ int main()
       }
     }
   }
-  board_with_index(current).drop();
 
 SAFELY_EXIT:
 

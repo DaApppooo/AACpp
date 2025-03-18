@@ -1,10 +1,13 @@
 #include "options.hpp"
+#include "utils.hpp"
+#define NO_CLAY
 #include "clay.h"
 #include "resman.hpp"
 #include "theme.hpp"
-#include "utils.hpp"
 #include <raylib.h>
 #include "./rlclay.h"
+
+bool options_open;
 
 constexpr inline float max(float a, float b)
 {
@@ -42,7 +45,7 @@ void options_update(Clay_RenderCommandArray& render_cmds)
   Clay_BeginLayout();
 
   CLAY( // body
-    CLAY_RETANGLE({ .color = theme::background_color }),
+    CLAY_RECTANGLE({ .color = theme::background_color }),
     CLAY_LAYOUT({
                   .sizing = theme::GROW,
                   .layoutDirection = CLAY_LEFT_TO_RIGHT

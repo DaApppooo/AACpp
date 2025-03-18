@@ -9,8 +9,8 @@
 #include "clay.h"
 #include <cstdlib>
 #include <raylib.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+#define STBI_MAX_DIMENSIONS (1<<29)
+#include "spng.h"
 #include "rlclay.h"
 
 Texture glob_tex;
@@ -22,29 +22,66 @@ FILE* source_cobz;
 
 Ref<list<FixedString>> current_actions;
 
-void TextureDumpLoad(Image& temp, Stream s)
+void TextureDumpLoad(Texture& tex, Stream s)
 {
   static char buf[3];
+  Image temp;
   int channels;
-  s.read(buf, 3);
-  assert(memcmp(buf, "IMG", 3) == 0); // if this fails, you're not reading a texture
-  temp.data = stbi_load_from_file(s._f, &temp.width, &temp.height, &channels, 0);
+  spng_ctx* ctx;
+  size_t len;
+  int spngerr;
+  spng_ihdr ihdr;
 
-  if (temp.data == nullptr)
+  tex.id = tex.height = tex.width = 0;
+  s.read(buf, 3);
+  ctx = spng_ctx_new(0);
+  // temp.data = (s._f, &temp.width, &temp.height, &channels, 0);
+  spngerr = spng_set_png_file(ctx, s._f);
+  if (spngerr)
   {
-    TraceLog(LOG_ERROR, "Failed to read one image from file.");
+    TraceLog(LOG_ERROR, "[LIBSPNG] %s", spng_strerror(spngerr));
     return;
   }
-
-  // this shit comes from raylib
+  spngerr = spng_decoded_image_size(ctx, SPNG_FMT_RGBA8, &len);
+  if (spngerr)
+  {
+    TraceLog(LOG_ERROR, "[LIBSPNG] %s", spng_strerror(spngerr));
+    return;
+  }
+  spngerr = spng_get_ihdr(ctx, &ihdr);
+  if (spngerr)
+  {
+    TraceLog(LOG_ERROR, "[LIBSPNG] %s", spng_strerror(spngerr));
+    return;
+  }
+  TraceLog(
+    LOG_INFO, "Image size is %ix%i (%lu bytes)",
+    ihdr.width, ihdr.height,
+    len
+  );
+  temp.width = ihdr.width;
+  temp.height = ihdr.height;
+  temp.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
   temp.mipmaps = 1;
-  if (channels == 1) temp.format = PIXELFORMAT_UNCOMPRESSED_GRAYSCALE;
-  else if (channels == 2) temp.format = PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA;
-  else if (channels == 3) temp.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8;
-  else if (channels == 4) temp.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-  else TraceLog(LOG_WARNING, "Unknown channel-format relation for channels=%i", channels);
-
-  TraceLog(LOG_INFO, "Successfuly loaded one image from file !");
+  temp.data = malloc(len);
+  if (temp.data == nullptr)
+  {
+    TraceLog(LOG_ERROR, "Not enough memory to load the spritesheet.");
+    return;
+  }
+  spngerr = spng_decode_image(ctx, temp.data, len, SPNG_FMT_RGBA8, 0);
+  if (spngerr)
+  {
+    free(temp.data);
+    TraceLog(LOG_ERROR, "[LIBSPNG] %s", spng_strerror(spngerr));
+    return;
+  }
+  spng_ctx_free(ctx);
+    
+  tex = LoadTextureFromImage(temp);
+  UnloadImage(temp);
+  if (tex.id != 0)
+    TraceLog(LOG_INFO, "Successfuly loaded one image from file !");
 }
 
 board_index_t alloc_board()
@@ -115,11 +152,11 @@ int init_res(Ref<Stream> s)
     boards.push(b);
   }
 
-  TextureDumpLoad(glob_tex, s);
   tex_count = s.read<isize>();
   texs.prealloc(tex_count);
   fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
-  
+  TextureDumpLoad(glob_tex, s);
+    
   return EXIT_SUCCESS;
 }
 

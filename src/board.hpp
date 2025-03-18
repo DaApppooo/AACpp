@@ -13,20 +13,6 @@ struct Board
   
   Cell* cells; // linrect layout (allocated size is width*height)
 
-  inline void hold()
-  {
-    for (int i = 0; i < layout_width*layout_height; i++)
-    {
-      cells[i].hold();
-    }
-  }
-  inline void drop()
-  {
-    for (int i = 0; i < layout_width*layout_height; i++)
-    {
-      cells[i].drop();
-    }
-  }
   void serialize(Stream f);
   void deserialize(Stream f);
   opt_board_index_t update();
