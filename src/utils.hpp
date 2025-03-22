@@ -143,9 +143,9 @@ struct Stream
   template <class T>
   inline T read()
   { T ret; fread(&ret, sizeof(T), 1, _f); return ret; }
-  inline void read(char* out_s, int len)
+  inline bool read(char* out_s, int len)
   {
-    fread(out_s, len, 1, _f);
+    return fread(out_s, len, 1, _f) == len;
   }
 
   template <class T>

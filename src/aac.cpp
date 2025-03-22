@@ -152,6 +152,10 @@ int main()
     }
   }
 
+  Rectangle r;
+  r.width = 150.f;
+  r.height = 150.f;
+
   while (!WindowShouldClose())
   {
     Clay_SetLayoutDimensions({XMAX, YMAX});
@@ -165,6 +169,8 @@ int main()
     {
       board_update(render_cmds, opt_new_board, current);
     }
+
+  
 
     // NOTE: Raylib provides compatibility with touch screen
     // without use of a different function
@@ -186,7 +192,7 @@ int main()
           current_actions.init();
         }
       }
-      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_parent"))))
+      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_options"))))
       {
         options_show();
       }
@@ -219,7 +225,7 @@ SAFELY_EXIT:
   return 0;
 }
 
-
+Rectangle r = {0, 0, 150, 150};
 inline void board_update(
   Clay_RenderCommandArray& render_cmds,
   opt_board_index_t& opt_new_board,
@@ -355,6 +361,16 @@ inline void board_update(
     ClearBackground(BLACK);
     Clay_Raylib_Render(render_cmds);
     board_with_index(current).draw();
+    // DrawTexturePro(
+    //   glob_tex,
+    //   r, {0.f, 0.f, r.width, r.height},
+    //   {0.f, 0.f}, 0.f, WHITE
+    // );
+
+    r.x += (IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT))*10.f;
+    r.y += (IsKeyDown(KEY_DOWN) - IsKeyDown(KEY_UP))*10.f;
+    r.width += (IsKeyDown(KEY_D) - IsKeyDown(KEY_A))*10.f;
+    r.height += (IsKeyDown(KEY_S) - IsKeyDown(KEY_W))*10.f;
   EndDrawing();
 }
 

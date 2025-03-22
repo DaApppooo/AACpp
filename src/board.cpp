@@ -18,9 +18,9 @@ void Board::serialize(Stream f)
 }
 void Board::deserialize(Stream f)
 {
-  char buf[3];
-  f.read(buf, 3);
-  assert(memcmp(buf, "BRD", 3) == 0);
+  char buf[4];
+  f.read(buf, 4);
+  assert(memcmp(buf, "BRD", 4) == 0);
   layout_width = f.read<int>();
   layout_height = f.read<int>();
   cells = (Cell*)malloc(sizeof(Cell)*layout_width*layout_height);
@@ -68,7 +68,7 @@ void Board::draw()
         Raylib_fonts[0].font,
         buf,
         {
-          x + theme::gpad,
+          x + theme::gpad + theme::text_space_width,
           theme::BAR_SIZE.height.sizeMinMax.min + theme::gpad
         },
         theme::font_size,

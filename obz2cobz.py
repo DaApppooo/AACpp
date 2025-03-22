@@ -305,9 +305,10 @@ class Rect:
     self.y = y
     self.w = w
     self.h = h
+    self.spritesheet_id = None
     self.locked = False
   def serialize(self) -> bytes:
-    return pack('ffff', self.x, self.y, self.w, self.h)
+    return pack('iffff', self.spritesheet_id, self.x, self.y, self.w, self.h)
   def __getitem__(self, idx):
     return (self.x, self.y, self.w, self.h)[idx]
   def __setitem__(self, idx, value):
@@ -315,9 +316,9 @@ class Rect:
 
 @dataclass
 class Obj:
-    id: int
-    img: Image
-    rect: Rect
+  board_id: str
+  img: Image
+  rect: Rect
 @dataclass
 class Fit:
     rect: Rect
@@ -328,52 +329,23 @@ def could_contain(rbig: Rect, rsmol: Rect):
 
 class CompiledOBZ:
     def __init__(self):
-        self.textures: dict[str, bytes] | Tuple[Obj] = {}
+        self.textures: dict[str, Obj] | Tuple[Obj] = {}
         self.boards: list[Board] | Tuple[Board, ...] = []
-    def gen_spritesheet_precursors(self):
-        objs: list[Obj] = [Obj(k,Image.open(io.BytesIO(raw)).convert('RGBA'), Rect(0,0,0,0)) for i,(k,raw) in enumerate(self.textures)]
-        info("Image infos loaded.")
-        # Setup rectangles in default position and run I2SQ
-        # i2sq_ncm = None
-        # I2SQ_T = 0.3333
-        # i2sq_prev_size = None
-        # for i in range(len(objs)):
-        #     dims = [objs[i].img.width, objs[i].img.height]
-        #     if dims[1] > dims[0]:
-        #         orig_h = dims[1]
-        #         if i2sq_ncm is not None:
-        #             if math.gcd(dims[1], i2sq_ncm[1]) > dims[1]*I2SQ_T > 1:
-        #                 pass
-        #             else:
-        #                 dims[1] = round(dims[1]/i2sq_ncm[1])*(i2sq_ncm[1])
-        #     else:
-        #         orig_w = dims[0]
-        #         if i2sq_ncm is not None:
-        #             if math.gcd(dims[0], i2sq_ncm[0]) > dims[0]*I2SQ_T > 1:
-        #                 pass
-        #             else:
-        #                 dims[0] = round(dims[0]/i2sq_ncm[0])*(i2sq_ncm[0])
-        #     if i2sq_ncm is None:
-        #         i2sq_ncm = copy(dims)
-        #     else:
-        #         i2sq_ncm = [math.gcd(i2sq_ncm[i], i2sq_prev_size[i]) for i in range(2)]
-        #     objs[i].rect.x = 0
-        #     objs[i].rect.w, objs[i].rect.h = dims
-        #     i2sq_prev_size = dims
+    def gen_spritesheet_precursors(self, tex_set):
+        objs: list[Obj] = tex_set
         MAXW = 0
         for o in objs:
-          if o.rect.w > 300:
-            o.rect.w =  o.img.width//4
-            o.rect.h = o.img.height//4
-          else:
-            o.rect.w = o.img.width//2
-            o.rect.h = o.img.height//2
+          o.rect.w = o.img.width
+          o.rect.h = o.img.height
+          while o.rect.w > 300:
+            o.rect.w = o.rect.w//2
+            o.rect.h = o.rect.h//2
           if o.rect.w > MAXW:
             MAXW = o.rect.w
           o.img = o.img.resize((o.rect.w, o.rect.h))
+        MAXW *= 2
         objs.sort(key=lambda x: (x.rect.w, x.rect.h), reverse=True) # same as sorting for width. texs are squares
         minw = objs[-1].rect.w
-        info("Images sorted.")
         # Set y positions accordingly
         y = 0
         for o in objs:
@@ -386,8 +358,8 @@ class CompiledOBZ:
         # but gives what looks like optimal packing (i don't think it is)
         fits = [Fit(Rect(o.rect.x+o.rect.w, o.rect.y, MAXW - o.rect.w, o.rect.h), i) for i,o in enumerate(objs)]
         max_dim = [0,0]
-        base_fixed = 1
-        for i in range(2, len(objs)):
+        base_fixed = 0
+        for i in range(1, len(objs)):
           for j in range(base_fixed, i):
             if could_contain(fits[j].rect, objs[i].rect):
               objs[i].rect.x = fits[j].rect.x
@@ -415,24 +387,30 @@ class CompiledOBZ:
               break
             if MAXW - (objs[i].rect.x + objs[i].rect.w) <= minw:
               base_fixed = i+1
-        info("Rects set.")
         max_dim[0] = MAXW
         max_dim[1] = max(o.rect.y+o.rect.h for o in objs)
-        info("Spritesheet limits set.")
         return objs, max_dim
-    def gen_spritesheet(self, objs, dim):
-      print(dim)
+    def gen_one_spritesheet(self, objs: list[Obj], dim, spritesheet_id: int):
       spritesheet = Image.new('RGBA', dim, (0,0,0,0))
       for obj in objs:
+        assert obj.rect.spritesheet_id is None, "Image reuse is not permitted."
+        obj.rect.spritesheet_id = spritesheet_id
         spritesheet.paste(
-            obj.img,
-            (
-                obj.rect.x,
-                obj.rect.y
-            )
+          obj.img,
+          (
+            obj.rect.x,
+            obj.rect.y
+          )
         )
-      self.textures = tuple(objs)
       return spritesheet
+    def gen_all_spritesheets(self) -> list[Image]:
+      assert isinstance(self.textures, tuple)
+      spritesheets = []
+      for board in tqdm(self.boards, desc="Generating spritesheets..."):
+        texs = list(filter(lambda x: x[1].board_id == board.obz_id, self.textures))
+        objs, dim = self.gen_spritesheet_precursors([o[1] for o in texs])
+        spritesheets.append(self.gen_one_spritesheet(objs, dim, len(spritesheets)))
+      return spritesheets
     def find_board_with_name(self, name: str) -> int | None:
         for idx, board in enumerate(self.boards):
             if board.name == name:
@@ -467,9 +445,10 @@ def parse_color(expr: str | None, default) -> bytes:
         want(False, f"Unknown color format: {repr(expr)}")
         return default
     return bytes([r,g,b,a])
-            
 
-def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | None:
+
+type Img = Image
+def load_img(z: zipf.ZipFile, src: str | None, cell_name: str) -> Img | None:
     if not src: # src is None or len(src) == 0
         return None
     raw: bytes
@@ -507,22 +486,16 @@ def load_img_raw(z: zipf.ZipFile, src: str | None, cell_name: str) -> bytes | No
         expect(False, f">Unknown image source information format ({repr(src[:50])}{'...' if len(src) >= 50 else ''}).")
     # Last checks just to make sure everything is good:
     try:
-        pil_img = Image.open(io.BytesIO(raw))
+        img = Image.open(io.BytesIO(raw))
         try:
-            pil_img.verify()
-        except Exception:
-            expect(False, '>Given image is broken.')
-        ext = pil_img.format.lower()
-        if ext == 'webp':
-            buf = io.BytesIO()
-            pil_img.save(buf, 'png', optimize=True)
-            raw = buf.read()
-        else:
-            expect(ext in SUPPORTED_IMAGE_FORMATS, f'>Unsupported image format {repr(pil_img.format.lower())}. See README.md for the list of supported image formats.')
-        pil_img.close()
+            img.verify()
+        except Exception as e:
+            expect(False, f'>Given image is broken: {e}')
     except UnidentifiedImageError:
         perror(f"Failed to identify image for cell {repr(cell_name)}, {src=}.")
-    return raw
+    # img.verify closed the io buffer
+    img = Image.open(io.BytesIO(raw))
+    return img
 
 def find_position(id: str, dbl: list[list[str]]):
     for y, l in enumerate(dbl):
@@ -568,29 +541,30 @@ def parse_board(
         c.name = b.get('label') or "" # Not always specified
         c.actions = []
         if 'image_id' in b:
-            if b['image_id'] not in cobz.textures:
-                img_src = None
-                for i in obf['images']:
-                    if i['id'] == b['id']:
-                        if 'url' in i:
-                            img_src = i['url']
-                        elif 'data' in i:
-                            img_src = i['data']
-                        else:
-                            want(False, '>No known image format found.')
-                        # TODO: add other keys that give an image source/data
-                        break
+          if b['image_id'] in cobz.textures:
+            c.obz_tex_id = b['image_id']
+            cobz.textures[c.obz_tex_id].board_id = obz_id
+          else:
+            img_src = None
+            for i in obf['images']:
+              if i['id'] == b['id']:
+                if 'url' in i:
+                  img_src = i['url']
+                elif 'data' in i:
+                  img_src = i['data']
                 else:
-                    c.tex_id = -1
-                    c.obz_tex_id = None
-                if raw := load_img_raw(z, img_src, c.name):
-                    cobz.textures[b['image_id']] = raw
-                    c.obz_tex_id = b['image_id']
-                else:
-                    c.tex_id = -1
-                    c.obz_tex_id = None
+                  want(False, '>No known image format found.')
+                # TODO: add other keys that give an image source/data
+                break
             else:
-                c.obz_tex_id = b['image_id']
+              c.tex_id = -1
+              c.obz_tex_id = None
+            if img := load_img(z, img_src, c.name):
+              cobz.textures[b['image_id']] = Obj(c.obz_id, img, Rect())
+              c.obz_tex_id = b['image_id']
+            else:
+              c.tex_id = -1
+              c.obz_tex_id = None
         if 'load_board' in b:
             for id, path in manifest['paths']['boards'].items():
                 if path == b['load_board']['path']:
@@ -626,14 +600,14 @@ THREAD_COUNT = 1
 MIN_BATCH_SIZE = 256
 def _image_preloader_batch(z: zipf.ZipFile, batch: Tuple[Tuple[str, str], ...], inout: dict[str, bytes], thid: int):
     for img_id, path in tqdm(batch, f"Thread {thid}", position=thid, nrows=THREAD_COUNT+1):
-        inout[str(img_id)] = load_img_raw(z, path, "<image preloading: no cell name>")
+        inout[str(img_id)] = Obj(-1, load_img(z, path, "<image preloading: no cell name>"), Rect())
 
 def parse_file(filename: str, import_images_from: str | None = None) -> CompiledOBZ:
     global THREAD_COUNT
     cobz = CompiledOBZ()
     z = zipf.ZipFile(filename, 'r')
     if import_images_from:
-        cobz.textures = pickle.load(open(import_images_from, "rb"))
+        cobz.textures = {k: Obj(board_id, Image.open(io.BytesIO(raw)), rect) for k, (board_id, raw, rect) in pickle.load(open(import_images_from, "rb")).items()}
     expect("manifest.json" in (i.filename for i in z.filelist), f"Missing manifest.json in {filename} !")
     with z.open('manifest.json', 'r') as _f_manifest:
         manifest = json.load(_f_manifest)
@@ -672,7 +646,12 @@ def parse_file(filename: str, import_images_from: str | None = None) -> Compiled
                 i.join()
             for batch in out_batches:
                 cobz.textures |= batch
-            pickle.dump(cobz.textures, _SAVE_CRASH_FILE)
+            bufs = {}
+            for k, tex in cobz.textures.items():
+                temp = io.BytesIO()
+                tex.img.save(temp, 'png')
+                bufs[k] = (tex.board_id, temp.getvalue(), tex.rect)
+            pickle.dump(bufs, _SAVE_CRASH_FILE)
         else:
             for img_id, path in tqdm():
                 cobz.textures[str(img_id)] = load_img_raw(z, path, "<image preloading: no cell name>")
@@ -721,6 +700,7 @@ if __name__ == '__main__':
         exit(1)
     try:
         cobz = parse_file(argv[1], None if len(argv) == 3 else argv[3])
+        spritesheets = cobz.gen_all_spritesheets()
         with open(argv[2], 'wb') as f:
             # NOTE: using 'q' because resman.cpp reads a i64
             f.write(pack('q', len(cobz.boards)))
@@ -728,23 +708,22 @@ if __name__ == '__main__':
                 f.write(b'BRD\x00')
                 f.write(board.serialize())
             info("Loading spritesheet precursors...")
-            precs = cobz.gen_spritesheet_precursors()
             info("Loaded spritesheet precursors.")
             info("Generating spritesheet...")
-            spritesheet = cobz.gen_spritesheet(*precs)
             f.write(pack('q', len(cobz.textures)))
             for obj in cobz.textures:
-              f.write(obj.rect.serialize())
-              print(tuple(obj.rect), obj.rect.serialize())
-            f.write(b"IMG\x00");
-            buf = io.BytesIO()
-            spritesheet.save(buf, 'png')
-            raw = buf.getvalue()
-            f.write(raw)
-            print(f"size of spritesheet data is {len(raw)}")
-            with open("test.png", 'wb') as im:
-                im.write(raw)
-            info("Generated spritesheet !")
+              f.write(obj[1].rect.serialize())
+            f.write(pack('q', len(spritesheets)))
+            for idx,spritesheet in enumerate(spritesheets):
+              f.write(b"IMG\x00")
+              buf = io.BytesIO()
+              spritesheet.save(buf, 'png')
+              raw = buf.getvalue()
+              f.write(raw)
+              with open(f"test-{idx}.png", 'wb') as ftest:
+                ftest.write(raw)
+              print(f"size of spritesheet [id {idx}] data is {len(raw)}")
+            info("Generated spritesheets !")
         print("Done !")
     except Exception:
         perror(traceback.format_exc())

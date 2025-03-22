@@ -7,21 +7,19 @@
 
 using String = list<char>;
 extern FILE* source_cobz;
-extern Texture glob_tex;
+extern list<Texture> spritesheets;
 extern Clay_TextElementConfig font;
 extern Texture btns[5];
 extern Ref<list<FixedString>> current_actions;
 
 struct TexInfo
 {
+  int spritesheet_id;
   Rectangle rect;
   inline void draw(Rectangle target)
   {
-    DrawRectangleLinesEx(
-      target, 2.f, RED
-    );
     DrawTexturePro(
-      glob_tex,
+      spritesheets[spritesheet_id],
       rect, target,
       {0.f, 0.f}, 0.f, WHITE
     );
