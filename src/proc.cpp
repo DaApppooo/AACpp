@@ -47,7 +47,7 @@ bool Proc::ended()
   // with nothing, because I was riled (sig 0)
   // just to make sure it stays aware
   // in the dark the demons do stare:
-  return ::kill(child, 0) == ESRCH || zero_count > 1;
+  return ::kill(child, 0) == ESRCH && zero_count > 10;
 }
 
 #endif /* __linux__ */

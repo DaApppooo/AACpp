@@ -2,8 +2,8 @@
 #include "theme.hpp"
 #include "utils.hpp"
 #include "board.hpp"
-#define CLAY__MIN(x, y) ((x < y) ? (x) : (y))
-#define CLAY__MAX(x, y) ((x > y) ? (x) : (y))
+// #define CLAY__MIN(x, y) ((x < y) ? (x) : (y))
+// #define CLAY__MAX(x, y) ((x > y) ? (x) : (y))
 #include "rlclay.h"
 #include <raylib.h>
 
@@ -17,14 +17,14 @@ Rectangle Cell::get_rect(const Board& board, int x, int y) const
   return {
     x * ((XMAX - theme::gpad*2)/board.layout_width) + theme::gpad,
     y * (
-          (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*1.5f)
+          (YMAX - theme::gpad*2 - theme::BAR_HEIGHT*1.5f)
           /board.layout_height
         )
       + theme::gpad
-      + theme::BAR_SIZE.height.sizeMinMax.min*1.5f,
+      + theme::BAR_HEIGHT*1.5f,
     ((XMAX - theme::gpad*2)/board.layout_width) - theme::gpad, // these -gpads
     (
-      (YMAX - theme::gpad*2 - theme::BAR_SIZE.height.sizeMinMax.min*1.5f)
+      (YMAX - theme::gpad*2 - theme::BAR_HEIGHT*1.5f)
       /board.layout_height
     ) - theme::gpad // are margins, and not paddings, but anyway
   };
@@ -67,14 +67,14 @@ void Cell::draw(const Board& board, int x, int y) const
     do {
       font_size /= SCALE_DOWN_STEP_FACTOR;
       txtm = MeasureTextEx(
-        Raylib_fonts[0].font,
+        theme::fonts[0],
         buf,
         font_size,
         theme::TEXT_SPACING
       );
     } while (txtm.x > rect.width);
     DrawTextEx(
-      Raylib_fonts[0].font,
+      theme::fonts[0],
       buf,
       {
         rect.x + rect.width/2.f - txtm.x/2.f,

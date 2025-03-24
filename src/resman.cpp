@@ -111,7 +111,7 @@ void TextureDumpLoad(Texture& tex, Stream s)
     GL_UNSIGNED_BYTE,
     data
    );
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -170,16 +170,9 @@ int init_res(Ref<Stream> s)
 
   current_actions.init();
 
-  Raylib_fonts[0].font = LoadFontEx("res/font.ttf", theme::font_size*2, nullptr, -1);
-  font.fontId = 0;
-  font.fontSize = theme::font_size;
-  font.letterSpacing = theme::TEXT_SPACING;
-  font.textColor = theme::text_color;
-  font.lineHeight = 1;
-  font.wrapMode = CLAY_TEXT_WRAP_NONE;
-  Clay__MeasureText = Raylib_MeasureText;
+  // NOTE: Font is loaded with init_theme
   theme::text_space_width = MeasureTextEx(
-    Raylib_fonts[0].font,
+    theme::fonts[0],
     " ",
     theme::font_size,
     theme::TEXT_SPACING
@@ -221,7 +214,7 @@ int init_res(Ref<Stream> s)
 
 void destroy_res()
 {
-  UnloadFont(Raylib_fonts[0].font);
+  UnloadFont(theme::fonts[0]);
   const isize l = spritesheets.len();
   for (isize i = 0; i < l; i++)
   {

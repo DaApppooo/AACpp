@@ -502,7 +502,8 @@ def find_position(id: str, dbl: list[list[str]]):
         for x, check_id in enumerate(l):
             if str(check_id) == str(id):
                 return (x,y)
-    expect(False, f"Could not find cell with {id=} in grid.")
+    # expect(False, f"Could not find cell with {id=} in grid.")
+    return None
 
 def index_when(it, func):
     for idx, elem in enumerate(it):
@@ -583,8 +584,11 @@ def parse_board(
             c.background = parse_color(b['background_color'], parse_color(DEFAULTS['cell']['background'], ERROR_COLOR))
         if 'border_color' in b:
             c.border = parse_color(b['border_color'], parse_color(DEFAULTS['cell']['border'], ERROR_COLOR))
-        c.obz_xy = find_position(c.obz_id, obf['grid']['order'])
-        board.cells.append(c)
+        if pos := find_position(c.obz_id, obf['grid']['order']):
+            c.obz_xy = pos
+            board.cells.append(c)
+        else:
+            print(f"Had to discard cell {repr(c.name)} because it doesn't have a grid position.")
     # Sorting cells based on position
     board.cells.sort(key=lambda c: c.obz_xy[::-1]) # '[::-1]' because y position is the most important when sorting, followed by x positions.
     if len(board.cells) == 0:

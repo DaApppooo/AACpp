@@ -45,7 +45,7 @@ void Board::draw()
       const char* buf = current_actions[i]._data+1;
       if (*buf == ' ') buf++;
       const float w = MeasureTextEx(
-        Raylib_fonts[0].font,
+        theme::fonts[0],
         buf,
         theme::font_size,
         theme::TEXT_SPACING
@@ -56,7 +56,7 @@ void Board::draw()
       DrawRectangleRounded(
         {
           x + theme::gpad,
-          theme::BAR_SIZE.height.sizeMinMax.min + theme::gpad/2.f,
+          theme::BAR_HEIGHT + theme::gpad/2.f,
           w + theme::gpad*2.f,
           theme::font_size+5.f + theme::gpad/2.f
         },
@@ -65,11 +65,11 @@ void Board::draw()
         CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_field_bg_color)
       );
       DrawTextEx(
-        Raylib_fonts[0].font,
+        theme::fonts[0],
         buf,
         {
           x + theme::gpad + theme::text_space_width,
-          theme::BAR_SIZE.height.sizeMinMax.min + theme::gpad
+          theme::BAR_HEIGHT + theme::gpad
         },
         theme::font_size,
         theme::TEXT_SPACING,

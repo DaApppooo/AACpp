@@ -12,6 +12,7 @@
 #include "utils.hpp"
 #include "board.hpp"
 #include "proc.hpp"
+#include "../cxml/ui.hpp"
 
 inline float throbber_func(float x)
 {
@@ -24,9 +25,15 @@ inline void board_update(
   board_index_t& current
 );
 
+void clay_error_handler(Clay_ErrorData error_data)
+{
+  TraceLog(LOG_ERROR, "[CLAY] %s (type: %i)", error_data.errorText.chars, (int)error_data.errorType);
+}
+
 int main()
 {
   Clay_RenderCommandArray render_cmds;
+  Clay_Context* clay_ctx;
   Stream board_src;
   uint64_t clay_req_mem;
   void* allocated_mem;
@@ -35,11 +42,12 @@ int main()
   const char* temp;
   Proc child;
   char* child_param_buffer[5];
+  float dt;
 
   {
-    // SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     SetTargetFPS(15);
-    Clay_Raylib_Initialize(1600, 900, "aacpp", FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
+    InitWindow(1600, 900, "aacpp");
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
   }
@@ -51,10 +59,12 @@ int main()
     clay_req_mem = Clay_MinMemorySize();
     allocated_mem = malloc(clay_req_mem);
     assert(allocated_mem != nullptr);
-    Clay_Initialize(
+    clay_ctx = Clay_Initialize(
       Clay_CreateArenaWithCapacityAndMemory(clay_req_mem, allocated_mem),
-      {XMAX, YMAX}
+      {XMAX, YMAX},
+      {clay_error_handler}
     );
+    Clay_SetCurrentContext(clay_ctx);
   }
 
   { // board selection and compilation if necessary
@@ -88,8 +98,14 @@ int main()
       // a whole load ass screen
       float t = 0;
       float dt;
-      while (!WindowShouldClose() && !child.ended())
+      WaitTime(0.5);
+      while (!child.ended())
       {
+        if (WindowShouldClose())
+        {
+          child.kill();
+          break;
+        }
         XMAX = GetScreenWidth();
         YMAX = GetScreenHeight();
         BeginDrawing();
@@ -124,14 +140,6 @@ int main()
         dt = GetFrameTime();
         t += dt;
       }
-      if (WindowShouldClose())
-      {
-        if (!child.ended())
-        {
-          child.kill();
-        }
-        goto SAFELY_EXIT;
-      }
       // NOTE: we can't use 'temp' because we can't be 100% sure it was set
       //  because of possible compiler shenanigans.
       compiled_board_path = TextFormat("%s.cobz", unknown_board_path);
@@ -155,11 +163,15 @@ int main()
   Rectangle r;
   r.width = 150.f;
   r.height = 150.f;
+  Clay_Raylib_Initialize(); // Should be the last thing to be initialized
 
   while (!WindowShouldClose())
   {
+    dt = GetFrameTime();
+    Vector2 mwm = GetMouseWheelMoveV();
     Clay_SetLayoutDimensions({XMAX, YMAX});
     Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::touch_press);
+    Clay_UpdateScrollContainers(true, {mwm.x, mwm.y}, dt);
 
     if (options_open)
     {
@@ -217,6 +229,7 @@ SAFELY_EXIT:
 
   free(allocated_mem);
 
+  Clay_Raylib_Close();
   destroy_options();
   destroy_res();
   destroy_tts();
@@ -225,132 +238,14 @@ SAFELY_EXIT:
   return 0;
 }
 
-Rectangle r = {0, 0, 150, 150};
 inline void board_update(
   Clay_RenderCommandArray& render_cmds,
   opt_board_index_t& opt_new_board,
   board_index_t& current
 ) {
-  Clay_BeginLayout();
+  Clay_SetDebugModeEnabled(true);
 
-    CLAY(
-      CLAY_ID("body"),
-      CLAY_RECTANGLE({ .color = theme::background_color }),
-      CLAY_LAYOUT({
-                  .sizing = theme::GROW,
-                  .layoutDirection = CLAY_TOP_TO_BOTTOM
-                })
-    ) {
-      CLAY(
-        CLAY_ID("header"),
-        CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
-        CLAY_LAYOUT({
-              .sizing = theme::BAR_SIZE,
-              .padding = theme::gpad,
-              .childGap = 10,
-              .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
-              .layoutDirection = CLAY_LEFT_TO_RIGHT
-        })
-      ) {
-        CLAY( // app options icon (possible additional board editing tools)
-          CLAY_ID("btn_options"),
-          CLAY_RECTANGLE({.color=theme::command_background}),
-          CLAY_LAYOUT({
-            .sizing = theme::ICON_SIZE
-          }),
-          CLAY_IMAGE({btns+BTI_OPT, theme::IMG_SCALE})
-        ) {};
-        CLAY( // SAFETY MARGIN
-          theme::TRANSPARENT_RECT,
-          CLAY_LAYOUT({
-            .sizing = theme::SAFETY_MARGIN
-          })
-        ) {};
-        CLAY( // parent board icon
-          CLAY_ID("btn_parent"),
-          CLAY_RECTANGLE({.color=theme::command_background}),
-          CLAY_LAYOUT({
-            .sizing = theme::ICON_SIZE
-          }),
-          CLAY_IMAGE({btns+BTI_UP, theme::IMG_SCALE})
-        ) {};
-        CLAY( // input text
-          CLAY_RECTANGLE({.color=theme::text_field_bg_color}),
-          CLAY_LAYOUT({
-            .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)},
-            .padding = theme::gpad,
-            .childGap = 10,
-            .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_CENTER},
-            .layoutDirection = CLAY_LEFT_TO_RIGHT,
-          })
-        ) {
-          CLAY_TEXT(CLAY_STRING(tts_fill_final_buffer()), CLAY_TEXT_CONFIG(font));
-        };
-        CLAY( // backspace input icon
-          CLAY_ID("btn_backspace"),
-          CLAY_RECTANGLE({.color=theme::command_background}),
-          CLAY_LAYOUT({
-            .sizing = theme::ICON_SIZE
-          }),
-          CLAY_IMAGE({btns+BTI_BACKSPACE, theme::IMG_SCALE})
-        ) {};
-        CLAY( // clear input icon
-          CLAY_ID("btn_clear"),
-          CLAY_RECTANGLE({.color=theme::command_background}),
-          CLAY_LAYOUT({
-            .sizing = theme::ICON_SIZE
-          }),
-          CLAY_IMAGE({btns+BTI_CLEAR, theme::IMG_SCALE})
-        ) {};
-        CLAY( // SAFETY MARGIN
-          theme::TRANSPARENT_RECT,
-          CLAY_LAYOUT({
-            .sizing = theme::SAFETY_MARGIN
-          })
-        ) {};
-        CLAY( // play input icon
-          CLAY_ID("btn_play"),
-          CLAY_RECTANGLE({.color=theme::command_background}),
-          CLAY_LAYOUT({
-            .sizing = theme::ICON_SIZE
-          }),
-          CLAY_IMAGE({btns+BTI_PLAY, theme::IMG_SCALE})
-        ) {
-        };
-      };
-      CLAY(
-        CLAY_ID("actions"),
-        CLAY_RECTANGLE({theme::TRANSPARENT_RECT}),
-        CLAY_LAYOUT({
-              .sizing = theme::BAR_SIZE,
-              .padding = theme::gpad,
-              .childGap = 10,
-              .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
-              .layoutDirection = CLAY_LEFT_TO_RIGHT
-        })
-      ) {
-        // Filled without clay
-        // FUTURE: Add button IF overflow to scroll between options
-      }
-      CLAY(
-        CLAY_ID("content"),
-        CLAY_LAYOUT({
-                .sizing = theme::GROW,
-                .padding = {theme::gpad, theme::gpad},
-                .childGap = 10,
-                .childAlignment = {CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_TOP},
-                .layoutDirection = CLAY_LEFT_TO_RIGHT
-        }),
-        CLAY_SCROLL({
-          .vertical = true
-        })
-      )
-      {
-        // FUTURE: use clay grid layout system
-      };
-    }
-
-  render_cmds = Clay_EndLayout();
+  layout_home(render_cmds);
 
   // NOTE: update before drawing. Weird visual bugs can happen because of
   // possible animations.shearing
@@ -359,18 +254,8 @@ inline void board_update(
   opt_new_board = board_with_index(current).update();
   BeginDrawing();
     ClearBackground(BLACK);
-    Clay_Raylib_Render(render_cmds);
-    board_with_index(current).draw();
-    // DrawTexturePro(
-    //   glob_tex,
-    //   r, {0.f, 0.f, r.width, r.height},
-    //   {0.f, 0.f}, 0.f, WHITE
-    // );
-
-    r.x += (IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT))*10.f;
-    r.y += (IsKeyDown(KEY_DOWN) - IsKeyDown(KEY_UP))*10.f;
-    r.width += (IsKeyDown(KEY_D) - IsKeyDown(KEY_A))*10.f;
-    r.height += (IsKeyDown(KEY_S) - IsKeyDown(KEY_W))*10.f;
+    Clay_Raylib_Render(render_cmds, theme::fonts);
+    // board_with_index(current).draw();
   EndDrawing();
 }
 

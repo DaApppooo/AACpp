@@ -6,6 +6,7 @@
 #include "theme.hpp"
 #include <raylib.h>
 #include "./rlclay.h"
+#include "../cxml/ui.hpp"
 
 bool options_open;
 
@@ -41,71 +42,9 @@ void options_update(Clay_RenderCommandArray& render_cmds)
     XMAX/2.f - W/2.f, 0.f,
     W, YMAX
   };
-
-  Clay_BeginLayout();
-
-  CLAY( // body
-    CLAY_RECTANGLE({ .color = theme::background_color }),
-    CLAY_LAYOUT({
-                  .sizing = theme::GROW,
-                  .layoutDirection = CLAY_LEFT_TO_RIGHT
-                })
-  ) {
-    CLAY( // margin left
-      theme::TRANSPARENT_RECT,
-      CLAY_LAYOUT({
-        .sizing = {
-          .width=CLAY_SIZING_FIXED(rect.x),
-          .height=CLAY_SIZING_GROW()
-        }
-      })
-    ) {}
-    CLAY( // content
-      theme::TRANSPARENT_RECT,
-      CLAY_LAYOUT({
-        .sizing = {
-          .width=CLAY_SIZING_FIXED(rect.width),
-          .height=CLAY_SIZING_GROW()
-        }
-      })
-    ) {
-      // List here all options:
-      NEW_OPTION(
-                 "DEFAULT_BOARD",
-                 "Select the default board to be loaded without asking.",
-               );
-    }
-    CLAY( // margin right
-      theme::TRANSPARENT_RECT,
-      CLAY_LAYOUT({
-        .sizing = {
-          .width=CLAY_SIZING_FIXED(rect.x),
-          .height=CLAY_SIZING_GROW()
-        }
-      })
-    ) {}
-  }
-
-  render_cmds = Clay_EndLayout();
-
+  layout_options(render_cmds);
   BeginDrawing();
-    Clay_Raylib_Render(render_cmds);
-    DrawTexturePro(
-      btns[BTI_BACKSPACE],
-      {
-        0.f, 0.f,
-        (float)btns[BTI_BACKSPACE].width,
-        (float)btns[BTI_BACKSPACE].height
-      },
-      {
-        (float)theme::gpad, (float)theme::gpad,
-        theme::IMG_SCALE.width,
-        theme::IMG_SCALE.height
-      },
-      {0.f, 0.f},
-      0.f,
-      WHITE
-    );
+    Clay_Raylib_Render(render_cmds, theme::fonts);
   EndDrawing();
 }
 

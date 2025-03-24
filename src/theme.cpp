@@ -2,9 +2,11 @@
 #include "clay.h"
 #include "ini.h"
 #include "webcolor.hpp"
+#include <cctype>
 #include <cstdlib>
 #include <raylib.h>
 
+Font font_array[1];
 namespace theme
 {
   const char* default_board = nullptr;
@@ -16,6 +18,7 @@ namespace theme
   uint16_t font_size;
   float border_weight;
   float text_space_width;
+  Font* fonts = font_array;
 }
 
 #define LDPWARN(sec, prop) \
@@ -64,6 +67,20 @@ void theme_load()
     theme::text_color = ~ color_parse_or(p, WHITE);
   LDPWARN("commands", "background")
     theme::command_background = ~ color_parse_or(p, {100, 110, 255, 255});
+  LDPWARN("global", "font_face")
+  {
+    if (isspace(*p) || *p == 0)
+      font_array[0] = LoadFont("res/font.ttf");
+    else
+    {
+      font_array[0] = LoadFont(p);
+      if (font_array[0].texture.id == 0)
+      {
+        TraceLog(LOG_INFO, "Loading packaged font instead of specified font because of a failure.");
+        font_array[0] = LoadFont("res/font.ttf");
+      }
+    }
+  }
   ini_free(cf);
 }
 

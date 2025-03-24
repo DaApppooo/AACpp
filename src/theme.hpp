@@ -1,5 +1,6 @@
 #ifndef H_THEME
 #define H_THEME
+#include "utils.hpp"
 #define NO_CLAY
 #include "clay.h"
 
@@ -13,14 +14,15 @@ namespace theme
   extern uint16_t font_size;
   extern Clay_Color text_field_bg_color;
   extern float text_space_width; // SET BY RESMAN.cpp, NOT BY THEME.cpp
+  extern Font* fonts;
   // constexpr Clay_Color text_color = { 53, 53, 53, 255 };
   constexpr Clay_Sizing GROW = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() };
   // constexpr Clay_Sizing CELL_SIZE = { CLAY_SIZING_FIXED(345), CLAY_SIZING_FIXED(200) };
   constexpr Clay_Sizing ICON_SIZE = { CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100) };
-  constexpr Clay_Sizing BAR_SIZE = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(130) };
-  constexpr Clay_Sizing SAFETY_MARGIN = { CLAY_SIZING_FIXED(50), CLAY_SIZING_GROW() };
+  constexpr float BAR_HEIGHT = 130;
+  constexpr float SAFETY_MARGIN = 50;
   constexpr Clay_Dimensions IMG_SCALE = { 512.f, 512.f };
-  constexpr Clay_RectangleElementConfig TRANSPARENT_RECT = { .color = { 0, 0, 0, 0 } };
+  constexpr Clay_Color TRANSPARENT_RECT = { 0, 0, 0, 0 };
   constexpr Clay_LayoutConfig OPTION_LAYOUT = {
     .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(100) },
     .padding = { 16, 16 },
@@ -30,10 +32,24 @@ namespace theme
   constexpr uint16_t TEXT_SPACING = 2;
 }
 
-inline constexpr Clay_Sizing clay_size(int w, int h)
+inline Clay_TextElementConfig* get_font_config()
 {
-  return {float(w), float(h)};
+  static Clay_TextElementConfig buf;
+  buf = {
+    .textColor = theme::text_color,
+    .fontId = 0,
+    .fontSize = theme::font_size,
+    .letterSpacing = theme::TEXT_SPACING,
+    .lineHeight = 0
+  };
+  return &buf;
 }
+
+constexpr inline Clay_String to_clay_string(const char* cstr)
+{
+  return {str_len(cstr), cstr};
+}
+
 
 // load or reload
 void theme_load();

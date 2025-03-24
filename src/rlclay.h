@@ -27,15 +27,10 @@ rlclay.cpp and kept the header a simple header.
 #define CLAY_RECTANGLE_TO_RAYLIB_RECTANGLE(rectangle) (Rectangle) { .x = rectangle.x, .y = rectangle.y, .width = rectangle.width, .height = rectangle.height }
 #define CLAY_COLOR_TO_RAYLIB_COLOR(color) (Color) { .r = (unsigned char)roundf(color.r), .g = (unsigned char)roundf(color.g), .b = (unsigned char)roundf(color.b), .a = (unsigned char)roundf(color.a) }
 
-typedef struct
-{
-    uint32_t fontId;
-    Font font;
-} Raylib_Font;
+extern "C" {
 
-extern Raylib_Font Raylib_fonts[10];
-extern Camera Raylib_camera;
-extern uint32_t measureCalls;
+// extern Camera Raylib_camera;
+// extern uint32_t measureCalls;
 
 typedef enum
 {
@@ -66,48 +61,11 @@ Ray GetScreenToWorldPointWithZDistance(
     float zDistance
 );
 
+void Clay_Raylib_Initialize();
+void Clay_Raylib_Close();
 
-static inline Clay_Dimensions Raylib_MeasureText(Clay_String *text, Clay_TextElementConfig *config) {
-    measureCalls++;
-    // Measure string size for Font
-    Clay_Dimensions textSize = { 0 };
+void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fonts);
 
-    float maxTextWidth = 0.0f;
-    float lineTextWidth = 0;
-
-    float textHeight = config->fontSize;
-    Font fontToUse = Raylib_fonts[config->fontId].font;
-    float scaleFactor = config->fontSize/(float)fontToUse.baseSize;
-
-    for (int i = 0; i < text->length; ++i)
-    {
-        if (text->chars[i] == '\n') {
-            maxTextWidth = fmax(maxTextWidth, lineTextWidth);
-            lineTextWidth = 0;
-            continue;
-        }
-        int index = text->chars[i] - 32;
-        if (fontToUse.glyphs[index].advanceX != 0) lineTextWidth += fontToUse.glyphs[index].advanceX;
-        else lineTextWidth += (fontToUse.recs[index].width + fontToUse.glyphs[index].offsetX);
-    }
-
-    maxTextWidth = fmax(maxTextWidth, lineTextWidth);
-
-    textSize.width = maxTextWidth * scaleFactor;
-    textSize.height = textHeight;
-
-    return textSize;
 }
-
-void Clay_Raylib_Initialize(
-    int width,
-    int height,
-    const char *title,
-    unsigned int flags
-);
-
-void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands);
-
-
 
 
