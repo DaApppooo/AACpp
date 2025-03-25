@@ -1,13 +1,18 @@
-<row w='GROW' h='GROW' bg='?theme::background_color'>
-  <column w='800' h='GROW' scroll='v'>
+<column w='grow' h='grow' bg='?theme::background_color'>
+  <row w='grow' h='theme::BAR_HEIGHT' bg='?theme::command_background'>
+    <margin w='50' h='grow'/>
+    <img id='btn_back' w='theme::BAR_HEIGHT' h='theme::BAR_HEIGHT' image.imageData="?btns+BTI_BACKSPACE" image.sourceDimensions='?theme::IMG_SCALE' />
+  </row>
+  <row w='grow' h='grow'>
+    <margin w='grow' h='grow'/>
+    <column w='800' h='grow' scroll='v'>
 
-    <row w='GROW' h='75'>
-      
-    </row>
+
     
-  </column>
-</row>
-
+    </column>
+    <margin w='grow' h='grow'/>
+  </row>
+</column>
 
 
 

@@ -5,7 +5,7 @@ import re
 from sys import argv
 from json import load, dump
 
-FLAG_DEBUG = 0
+FLAG_DEBUG = 1
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
@@ -15,6 +15,7 @@ OBJ_PATH = "temp"
 BIN = "bin/aac" # Bin path is deduced from this.
 CONFIG = "config/bm.json" # Same here
 EXT = ".cpp"
+CXML = "cxml"
 EXAMPLE = "./bin/aac"
 
 def rls(path_, filter = lambda x: True):
@@ -111,15 +112,18 @@ load_opt()
 fixmissing_files_opt()
 if __name__ == "__main__":
 	if len(argv) == 1:
-		for i in rls("cxml", lambda x: x.endswith(".cxml")):
-			if err := shell(f"python3 cxml/trans.py {i} >{i[:-5]}.hpp"):
-				yeet(err)
 		compile_all(cflags="-O0") # Avoid any optimization for a simple test run
 		link_all()
 		run_example()
 		yeet(0)
 
 	match argv[1]:
+		case "cxml":
+			for i in rls("cxml", lambda x: x.endswith(".cxml")):
+				if err := shell(f"python3 cxml/trans.py {i}"):
+					yeet(err)
+			if err := shell(f"g++ -fPIC -o cxml/ui.so -shared {CXML}/*.cpp"):
+				yeet(1)
 		case "all":
 			compile_all(check_ch_time=False, cflags="-O0")
 			yeet(0)

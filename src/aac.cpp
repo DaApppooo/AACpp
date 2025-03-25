@@ -12,7 +12,6 @@
 #include "utils.hpp"
 #include "board.hpp"
 #include "proc.hpp"
-#include "../cxml/ui.hpp"
 
 inline float throbber_func(float x)
 {
@@ -43,6 +42,7 @@ int main()
   Proc child;
   char* child_param_buffer[5];
   float dt;
+
 
   {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
@@ -154,6 +154,7 @@ int main()
   }
 
   { // board and ressource loading
+    load_layouts();
     if (init_res(board_src))
     {
       return EXIT_FAILURE;
@@ -164,6 +165,7 @@ int main()
   r.width = 150.f;
   r.height = 150.f;
   Clay_Raylib_Initialize(); // Should be the last thing to be initialized
+  bool clay_debug = false;
 
   while (!WindowShouldClose())
   {
@@ -181,7 +183,17 @@ int main()
     {
       board_update(render_cmds, opt_new_board, current);
     }
+    Clay_SetDebugModeEnabled(clay_debug);
 
+    if (IsKeyPressed(KEY_R))
+    {
+      load_layouts();
+      TraceLog(LOG_INFO, "Reloaded layouts !");
+    }
+    if (IsKeyPressed(KEY_D))
+    {
+      clay_debug = !clay_debug;
+    }
   
 
     // NOTE: Raylib provides compatibility with touch screen
@@ -243,7 +255,6 @@ inline void board_update(
   opt_board_index_t& opt_new_board,
   board_index_t& current
 ) {
-  Clay_SetDebugModeEnabled(true);
 
   layout_home(render_cmds);
 
@@ -255,7 +266,7 @@ inline void board_update(
   BeginDrawing();
     ClearBackground(BLACK);
     Clay_Raylib_Render(render_cmds, theme::fonts);
-    // board_with_index(current).draw();
+    board_with_index(current).draw();
   EndDrawing();
 }
 

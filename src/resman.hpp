@@ -11,6 +11,18 @@ extern list<Texture> spritesheets;
 extern Clay_TextElementConfig font;
 extern Texture btns[5];
 extern Ref<list<FixedString>> current_actions;
+#ifdef DEBUG
+extern void(*layout_home)(Clay_RenderCommandArray& array);
+extern void(*layout_options)(Clay_RenderCommandArray& array);
+void load_layouts();
+#else
+// Linked statically in production
+extern "C" {
+void layout_home(Clay_RenderCommandArray& array);
+void layout_options(Clay_RenderCommandArray& array);
+}
+inline void load_layouts() {}
+#endif
 
 struct TexInfo
 {

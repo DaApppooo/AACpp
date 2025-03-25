@@ -112,7 +112,7 @@ class ClayBox:
     self.default_attrs = default_attrs
   def __call__(self, attr: dict[str, str], text: str):
     field = FieldBuilder.use(
-      attr | self.default_attrs
+      self.default_attrs | attr
     )
     field.alias('w', 'layout.sizing.width')
     field.alias('h', 'layout.sizing.height')
@@ -128,8 +128,8 @@ class ClayBox:
       'center': 'CLAY_ALIGN_{}_CENTER',
       'top': 'CLAY_ALIGN_{}_TOP',
       'bottom': 'CLAY_ALIGN_{}_BOTTOM',
-      'right': 'CLAY_ALIGN_{}_LEFT',
-      'left': 'CLAY_ALIGN_{}_RIGHT'
+      'right': 'CLAY_ALIGN_{}_RIGHT',
+      'left': 'CLAY_ALIGN_{}_LEFT'
     }
     field.func('layout.childAlignment.x', lambda x: CHILD_ALIGNEMENTS[x.lower()].format('X'))
     field.func('layout.childAlignment.y', lambda x: CHILD_ALIGNEMENTS[x.lower()].format('Y'))
@@ -185,7 +185,7 @@ tags = {
   "row": ClayBox({'layout.layoutDirection':'CLAY_LEFT_TO_RIGHT'}),
   "box": ClayBox({}),
   "margin": ClayBox({'backgroundColor': '{0,0,0,0}'}),
-  "img": ClayBox({'backgroundColor': '{255,255,255,255}'}),
+  "img": ClayBox({'backgroundColor': '{255,255,255,255}', 'layout.sizing.width': 'GROW', 'layout.sizing.height': 'GROW'}),
   "text": clay_text
 }
 
@@ -202,10 +202,9 @@ def name(path):
   return path.rsplit('/', 1)[1].rsplit('.',1)[0]
 
 o  = "#include \"ui.hpp\"\n"
-o += f"void layout_{name(argv[1])}(Clay_RenderCommandArray& rc) {{\n"
+o += f"extern \"C\" {{void layout_{name(argv[1])}(Clay_RenderCommandArray& rc) {{\n"
 o += "Clay_BeginLayout();"
 o += parse(ET.fromstring(code))
-o += "rc = Clay_EndLayout();}"
-proc = os.popen("g++ -fPIC -o cxml/ui.so -shared -xc++ -", 'w')
-proc.write(o)
-proc.close()
+o += "rc = Clay_EndLayout();}}"
+with open(argv[1]+'.cpp', 'w') as f:
+  f.write(o)

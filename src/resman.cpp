@@ -21,8 +21,24 @@ list<Board> boards;
 Clay_TextElementConfig font;
 Texture btns[5];
 FILE* source_cobz;
+#ifdef DEBUG
+#include <dlfcn.h>
+void(*layout_home)(Clay_RenderCommandArray& array);
+void(*layout_options)(Clay_RenderCommandArray& array);
+void load_layouts()
+{
+  void* h = dlopen("cxml/ui.so", RTLD_LAZY);
+  assert(h != 0);
+  layout_home = decltype(layout_home)(dlsym(h, "layout_home"));
+  layout_options = decltype(layout_options)(dlsym(h, "layout_options"));
+  assert(layout_home != 0);
+  assert(layout_options != 0);
+  dlclose(h);
+}
+#endif
 
 Ref<list<FixedString>> current_actions;
+
 
 void TextureDumpLoad(Texture& tex, Stream s)
 {
@@ -200,6 +216,7 @@ int init_res(Ref<Stream> s)
   tex_count = s.read<isize>();
   texs.prealloc(tex_count);
   fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
+  texs.set_len(tex_count);
   // Spritesheets
   tex_count = s.read<isize>();
   spritesheets.prealloc(tex_count);
@@ -208,6 +225,7 @@ int init_res(Ref<Stream> s)
     spritesheets.push(Texture{});
     TextureDumpLoad(spritesheets[-1], s);
   }
+  spritesheets.set_len(tex_count);
     
   return EXIT_SUCCESS;
 }

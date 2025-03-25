@@ -1,18 +1,30 @@
 <column id='body' w='GROW' h='GROW' bg='?theme::background_color'>
   <row w='GROW' h='theme::BAR_HEIGHT' pad='?theme::gpad' cg='10'
     child-align.x='CENTER' child-align.y='CENTER'>
-    <img id='btn_options' w='theme::BAR_HEIGHT' h='theme::BAR_HEIGHT' image.imageData="?btns+BTI_OPT" image.sourceDimensions='?theme::IMG_SCALE' />
+    <box bg='?theme::command_background' w='theme::BAR_HEIGHT - theme::gpad*2' h='theme::BAR_HEIGHT - theme::gpad*2'>
+      <img id='btn_options' image.imageData="?btns+BTI_OPT" image.sourceDimensions='?theme::IMG_SCALE' />
+    </box>
     <margin w='theme::SAFETY_MARGIN' h='GROW'/>
-    <img id='btn_parent' w='theme::BAR_HEIGHT' h='theme::BAR_HEIGHT' image.imageData="?btns+BTI_UP" image.sourceDimensions='?theme::IMG_SCALE' />
-    <row w='GROW' h='100' pad='?theme::gpad' cg='10' child-align.x='LEFT' child-align.y='CENTER' bg='?theme::text_field_bg_color'>
+    <box bg='?theme::command_background' w='theme::BAR_HEIGHT - theme::gpad*2' h='theme::BAR_HEIGHT - theme::gpad*2'>
+      <img id='btn_parent' image.imageData="?btns+BTI_UP" image.sourceDimensions='?theme::IMG_SCALE' />
+    </box>
+  <!--       vvv this doesn't work for some reason, waiting for clay update   -->
+  <!-- child-align.x='LEFT' child-align.y='CENTER'  PUT THAT IN THE FOLLOWING BLOCK -->
+    <row w='GROW' h='100' pad='?theme::gpad' cg='10'  bg='?theme::text_field_bg_color'>
       <text config='get_font_config()'>
         to_clay_string(tts_fill_final_buffer())
       </text>
     </row>
-    <img id='btn_backspace' w='theme::BAR_HEIGHT' h='theme::BAR_HEIGHT' image.imageData="?btns+BTI_BACKSPACE" image.sourceDimensions='?theme::IMG_SCALE' />
-    <img id='btn_clear' w='theme::BAR_HEIGHT' h='theme::BAR_HEIGHT' image.imageData="?btns+BTI_CLEAR" image.sourceDimensions='?theme::IMG_SCALE' />
+    <box bg='?theme::command_background' w='theme::BAR_HEIGHT - theme::gpad*2' h='theme::BAR_HEIGHT - theme::gpad*2'>
+      <img id='btn_backspace' image.imageData="?btns+BTI_BACKSPACE" image.sourceDimensions='?theme::IMG_SCALE' />
+    </box>
+    <box bg='?theme::command_background' w='theme::BAR_HEIGHT - theme::gpad*2' h='theme::BAR_HEIGHT - theme::gpad*2'>
+      <img id='btn_clear' image.imageData="?btns+BTI_CLEAR" image.sourceDimensions='?theme::IMG_SCALE' />
+    </box>
     <margin w='theme::SAFETY_MARGIN' h='GROW'/>
-    <img id='btn_play' w='theme::BAR_HEIGHT' h='theme::BAR_HEIGHT' image.imageData="?btns+BTI_PLAY" image.sourceDimensions='?theme::IMG_SCALE' />
+    <box bg='?theme::command_background' w='theme::BAR_HEIGHT - theme::gpad*2' h='theme::BAR_HEIGHT - theme::gpad*2'>
+      <img id='btn_play' image.imageData="?btns+BTI_PLAY" image.sourceDimensions='?theme::IMG_SCALE' />
+    </box>
   </row>
   <margin id='actions' w='GROW' h='?theme::BAR_HEIGHT'/>
   <margin id='content' w='GROW' h='GROW'/>

@@ -77,7 +77,7 @@ public:
   inline Self& assign(const list<T>& other);
   inline Self& operator=(const list<T>& other);
   inline Self& operator=(std::initializer_list<T> init_ls);
-  constexpr inline T& operator[](const index_t index) const;
+  T& operator[](const index_t index) const;
   inline View<T> operator[](std::initializer_list<index_t> start_end);
 
   // Modifies the state of the argument as disowned
@@ -472,12 +472,16 @@ GEN inline Self& list<T>::operator=(std::initializer_list<T> init_ls)
   return self;
 }
 
-GEN inline constexpr T& list<T>::operator[](const index_t index) const
+GEN T& list<T>::operator[](const index_t index) const
 {
   const isize _len = len();
   if (index < 0)
   {
     return _data[_len + index];
+  }
+  if (0 > index || index >= _len)
+  {
+    abort();
   }
 #ifdef DEBUG
   assertm(0 <= index && index < _len, "list out of bound access");
@@ -618,7 +622,7 @@ public:
     return *this;    
   }
   inline Self& operator=(std::initializer_list<T> init_ls);
-  constexpr inline T& operator[](index_t index) const
+  inline T& operator[](index_t index) const
   {
     if (index < 0) index = len() + index; // quite expensive but can be useful
 #ifdef DEBUG

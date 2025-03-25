@@ -40,7 +40,8 @@ inline Clay_TextElementConfig* get_font_config()
     .fontId = 0,
     .fontSize = theme::font_size,
     .letterSpacing = theme::TEXT_SPACING,
-    .lineHeight = 0
+    .lineHeight = 0,
+    .textAlignment = CLAY_TEXT_ALIGN_RIGHT
   };
   return &buf;
 }
