@@ -45,6 +45,14 @@ void options_update(Clay_RenderCommandArray& render_cmds)
   BeginDrawing();
     Clay_Raylib_Render(render_cmds, theme::fonts);
   EndDrawing();
+
+  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+  {
+    if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_back"))))
+    {
+      options_open = false;
+    }
+  }
 }
 
 void destroy_options()

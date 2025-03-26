@@ -68,6 +68,7 @@ end
 
 TARGET = "LINUX"
 RAYLIB_VERSION = "5.5"
+OPENJDK_LINK = ""
 for _, a in pairs(arg) do
   if startswith(a, "target=") then
     TARGET = string.upper(string.sub(a, string.find(a, "=")+1))
@@ -81,8 +82,12 @@ for _, a in pairs(arg) do
   end
 end
 
-if TARGET == "IOS" or TARGET == "ANDROID" then
-  error("Targets IOS and ANDROID are not yet supported.")
+if TARGET == "ANDROID" then
+  print("NOTE: Compilation for Android is expected to be run on Linux")
+end
+
+if TARGET == "IOS" then
+  error("Targets IOS are not yet supported.")
 end
 
 if not isdir("lib") then
@@ -98,14 +103,18 @@ if not os.execute("gcc --version") then
 end
 
 print("Updating/Installing clay.h ...")
-if TARGET == "LINUX" then
+if TARGET == "LINUX" or TARGET == "ANDROID" then
   shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h -o src/clay.h")
 elseif TARGET == "WIN" then
-  shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h -o src/clay.h")
+  shell("Invoke-WebRequest https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h -o src/clay.h")
 end
 
 print("Cloning repos...")
-shell("git clone https://github.com/mlabbe/nativefiledialog.git")
+if TARGET == "WIN" or TARGET == "LINUX" then
+  shell("git clone https://github.com/mlabbe/nativefiledialog.git")
+elseif TARGET == "ANDROID" then
+  error("No library to pick a file for android.")
+end
 shell("git clone https://github.com/randy408/libspng.git")
 
 print("Grab latest release from raylib for target=" .. TARGET)
@@ -141,5 +150,8 @@ elseif TARGET == "WIN" then
   shell("gcc -c libspng/spng/spng.c -o spng.o")
   shell("ar rcs lib/libspng.a spng.o")
   rm("spng.o")
+elseif TARGET == "ANDROID" then
+  print("Setting up android stuff for raylib...")
+  shell("\\bash ./android_setup.sh")
 end
 
