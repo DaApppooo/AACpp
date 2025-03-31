@@ -10,6 +10,7 @@ struct Board
   // Board Builder usual layout
   int layout_width;
   int layout_height;
+  opt_board_index_t parent;
   
   Cell* cells; // linrect layout (allocated size is width*height)
 

@@ -12,7 +12,6 @@ struct Cell
   // NOTE: FixedString impl destroy => list::destroy calls FixedString::destroy
   list<FixedString> actions;
   opt_board_index_t child;
-  opt_board_index_t parent;
   int tex_id;
   Color background;
   Color border;

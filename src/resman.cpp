@@ -218,12 +218,33 @@ int init_res(Ref<Stream> s)
   fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
   texs.set_len(tex_count);
   // Spritesheets
+  const float LOADING_W = 0.1f * XMAX;
+  const float LOADING_H = 0.05f * YMAX;
   tex_count = s.read<isize>();
   spritesheets.prealloc(tex_count);
   for (isize i = 0; i < tex_count; i++)
   {
-    spritesheets.push(Texture{});
-    TextureDumpLoad(spritesheets[-1], s);
+    if (WindowShouldClose())
+      return EXIT_FAILURE;
+    BeginDrawing();
+      DrawRectangleLinesEx(
+        {
+          XMAX/2.f - LOADING_W/2.f, YMAX/2.f - LOADING_H/2.f,
+          LOADING_W, LOADING_H
+        },
+        5.f,
+        GRAY
+      );
+      DrawRectangleRec(
+        {
+          XMAX/2.f - LOADING_W/2.f, YMAX/2.f - LOADING_H/2.f,
+          LOADING_W*float(i)/tex_count, LOADING_H
+        },
+        SKYBLUE
+      );
+      spritesheets.push(Texture{});
+      TextureDumpLoad(spritesheets[-1], s);
+    EndDrawing();
   }
   spritesheets.set_len(tex_count);
     

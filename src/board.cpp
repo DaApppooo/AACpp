@@ -57,7 +57,7 @@ void Board::draw()
         {
           x + theme::gpad,
           theme::BAR_HEIGHT + theme::gpad/2.f,
-          w + theme::gpad*2.f,
+          w + theme::text_space_width + theme::gpad*2.f,
           theme::font_size+5.f + theme::gpad/2.f
         },
         0.75f,

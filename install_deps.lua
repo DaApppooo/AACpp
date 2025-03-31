@@ -99,10 +99,11 @@ end
 
 print("Updating/Installing clay.h ...")
 if TARGET == "LINUX" then
-  shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h -o src/clay.h")
+  shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h")
 elseif TARGET == "WIN" then
-  shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h -o src/clay.h")
+  shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h")
 end
+mv("clay.h", "src/clay.h")
 
 print("Cloning repos...")
 shell("git clone https://github.com/mlabbe/nativefiledialog.git")

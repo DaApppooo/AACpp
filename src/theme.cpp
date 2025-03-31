@@ -70,14 +70,15 @@ void theme_load()
   LDPWARN("global", "font_face")
   {
     if (isspace(*p) || *p == 0)
-      font_array[0] = LoadFont("res/font.ttf");
+      font_array[0] = LoadFontEx("res/font.ttf", theme::font_size, 0, 0);
     else
     {
-      font_array[0] = LoadFont(p);
+      font_array[0] = LoadFontEx(p, theme::font_size, 0, 0);
       if (font_array[0].texture.id == 0)
       {
         TraceLog(LOG_INFO, "Loading packaged font instead of specified font because of a failure.");
-        font_array[0] = LoadFont("res/font.ttf");
+        font_array[0] = LoadFontEx("res/font.ttf", theme::font_size, 0, 0);
+        assert(font_array[0].texture.id != 0);
       }
     }
   }

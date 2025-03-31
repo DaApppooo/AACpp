@@ -244,7 +244,6 @@ def var2fixed_utf8(s: bytes) -> bytes:
 class Cell:
     name: str
     tex_id: int
-    parent: int
     child: int
     background: bytes
     border: bytes
@@ -253,6 +252,15 @@ class Cell:
     obz_tex_id: str | None
     obz_id: str
     obz_xy: Tuple[int, int]
+    def set_child(self, cobz, child_board_id):
+        if isinstance(child_board_id, int):
+            self.child = child_board_id
+            cobz.boards[self.child].parent = child_board_id
+        else:
+            assert isinstance(child_board_id, str)
+            self.obz_child_id = child_board_id
+            if not isinstance(cobz.boards[self.child].parent, int):
+                cobz.boards[self.child].parent = child_board_id
     def init(self, xy: None | Tuple[int, int] = None) -> Self:
         self.name = ""
         self.tex_id = -1
@@ -274,14 +282,13 @@ class Cell:
         for a in self.actions:
             actions += pack(f'=q{len(a)}s', len(a), a)
         return pack(
-            f'=3siq{len(byts)}sq{len(actions)}sii4B4B',
+            f'=3siq{len(byts)}sq{len(actions)}si4B4B',
             b'CLL',
             self.tex_id,
             len(byts),
             byts,
             len(self.actions),
             actions,
-            self.parent,
             self.child,
             *self.background,
             *self.border
@@ -290,11 +297,14 @@ class Cell:
 class Board:
     w: int
     h: int
+    parent: int | str
     cells: list[Cell]
     name: str
     obz_id: str
+    def solve_parent(self, cobz):
+        
     def serialize(self) -> bytes:
-        res = pack('=ii', self.w, self.h)
+        res = pack('=iii', self.w, self.h, self.parent)
         for i in self.cells:
             res += i.serialize()
         return res
@@ -523,6 +533,7 @@ def parse_board(
     want(obz_id == obf['id'], f"ID mismatch (manifest specifies {obz_id} while descriptor specifies {obf['id']})")
     board.obz_id = str(obz_id) # different sources use different types, safer to use strings
     board.name = obf['name']
+    board.parent = -1
     celld: dict[str, Cell] = {}
 
     info(f"Loading board named {obf['name']}.")
@@ -536,7 +547,6 @@ def parse_board(
         c.obz_id = str(b['id'])
         c.obz_tex_id = None
         c.obz_child_id = None
-        c.parent = -1
         c.background = ERROR_COLOR
         c.border = ERROR_COLOR
         c.name = b.get('label') or "" # Not always specified
@@ -685,7 +695,7 @@ def parse_file(filename: str, import_images_from: str | None = None) -> Compiled
                 # TODO: REMOVE: THIS IS JUST BECAUSE BOARD BUILDER DOESN'T
                 # SUPPORT LINKING WITHIN THE EXPORTED FILES
                 if child_idx := cobz.find_board_with_name(cell.name):
-                    cell.child = child_idx
+                    cell.set_child(cobz, child_idx)
                 else:
                     cell.child = -1
             else:

@@ -5,3 +5,4 @@ savecrash*
 *.csv
 */*.csv
 lib/*
+.config/*

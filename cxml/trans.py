@@ -205,6 +205,6 @@ o  = "#include \"ui.hpp\"\n"
 o += f"extern \"C\" {{void layout_{name(argv[1])}(Clay_RenderCommandArray& rc) {{\n"
 o += "Clay_BeginLayout();"
 o += parse(ET.fromstring(code))
-o += "rc = Clay_EndLayout();}}"
+o += ";;rc = Clay_EndLayout();}}"
 with open(argv[1]+'.cpp', 'w') as f:
   f.write(o)

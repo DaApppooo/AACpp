@@ -64,6 +64,7 @@ void Cell::draw(const Board& board, int x, int y) const
     constexpr float SCALE_DOWN_STEP_FACTOR = 1.2f; // MUST BE STRICTLY OVER 1
     const char* buf = name._data;
     float font_size = theme::font_size*SCALE_DOWN_STEP_FACTOR;
+    int max_iter = 20;
     do {
       font_size /= SCALE_DOWN_STEP_FACTOR;
       txtm = MeasureTextEx(
@@ -72,7 +73,10 @@ void Cell::draw(const Board& board, int x, int y) const
         font_size,
         theme::TEXT_SPACING
       );
-    } while (txtm.x > rect.width);
+      max_iter--;
+      if (max_iter <= 0)
+        break;
+    } while (txtm.x > rect.width || txtm.y > rect.height/2.f);
     DrawTextEx(
       theme::fonts[0],
       buf,
@@ -88,12 +92,15 @@ void Cell::draw(const Board& board, int x, int y) const
   if (tex_id != -1)
   {
     const float ratio = texs[tex_id].rect.width/texs[tex_id].rect.height;
+    float height = (rect.height-txtm.y-theme::gpad);
+    if (ratio*height > rect.width)
+      height = rect.width/ratio;
     texs[tex_id].draw(
       {
         rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y-theme::gpad))/2.f,
         rect.y + theme::gpad,
-        ratio*(rect.height-txtm.y-theme::gpad),
-        rect.height - txtm.y - theme::gpad
+        ratio*height,
+        height
       }
     );
   }

@@ -255,6 +255,10 @@ inline void board_update(
   opt_board_index_t& opt_new_board,
   board_index_t& current
 ) {
+  static bool debug = false;
+  Clay_SetDebugModeEnabled(debug);
+  if (IsKeyPressed(KEY_D))
+    debug = ! debug;
 
   layout_home(render_cmds);
 
@@ -267,6 +271,21 @@ inline void board_update(
     ClearBackground(BLACK);
     Clay_Raylib_Render(render_cmds, theme::fonts);
     board_with_index(current).draw();
+    // NOTE: BECAUSE CLAY HAS A TEXT BUG, I'LL THE THE TEXT MYSELF WITH RAYLIB
+    DrawTextPro(
+      theme::fonts[0],
+      tts_fill_final_buffer(),
+      {
+        theme::gpad*2 + (theme::BAR_HEIGHT - theme::gpad*2)*2
+        + theme::SAFETY_MARGIN + 10*3,
+        theme::BAR_HEIGHT/2.f + theme::gpad
+      },
+      { 0.f, theme::font_size/1.5f },
+      0.f,
+      theme::font_size,
+      theme::TEXT_SPACING,
+      CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
+    );
   EndDrawing();
 }
 
