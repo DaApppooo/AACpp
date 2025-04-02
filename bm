@@ -118,6 +118,14 @@ if __name__ == "__main__":
 		yeet(0)
 
 	match argv[1]:
+		case "obz2cobz":
+			L = list(rls("obz2cobz", lambda x: x.endswith(".cpp")))
+			for i in L:
+				if err := shell(f"g++ -c {i} -o temp/{path.basename(i)}.o"):
+					yeet(err)
+			obj = ' '.join(f"temp/{path.basename(i)}.o" for i in L)
+			if err := shell(f"g++ {obj} -o obz2cobz"):
+				yeet(err)
 		case "cxml":
 			for i in rls("cxml", lambda x: x.endswith(".cxml")):
 				if err := shell(f"python3 cxml/trans.py {i}"):

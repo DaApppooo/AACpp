@@ -1,3 +1,15 @@
+-- Small list of dependencies by name:
+-- TARGET={LINUX, WIN}
+--  PROG=aac
+--   raylib by raysan5 on github under zlib License
+--   nfd by by mlabbe on github under zlib license
+--   libpng by (a bunch of people) on libpng.org under a custom open source licence 
+--   clay by nicbarker on github under zlib license
+-- TARGET={LINUX,WIN,ANDROID}
+--  PROG=obz2cobz
+--   zip by kuba-- on github under MIT license
+--   cJSON by DaveGamble on github under MIT license
+
 
 function shell(fmt, ...)
   local res = string.format(fmt, ...)
@@ -68,6 +80,8 @@ end
 
 TARGET = "LINUX"
 RAYLIB_VERSION = "5.5"
+CJSON_VERSION = "1.7.18"
+ZIP_VERSION = "0.3.3"
 for _, a in pairs(arg) do
   if startswith(a, "target=") then
     TARGET = string.upper(string.sub(a, string.find(a, "=")+1))
@@ -91,6 +105,9 @@ end
 if not isdir("include") then
   shell("mkdir include")
 end
+if not isdir("licenses") then
+  shell("mkdir licenses")
+end
 
 print("Check that compiler is available...")
 if not os.execute("gcc --version") then
@@ -99,9 +116,10 @@ end
 
 print("Updating/Installing clay.h ...")
 if TARGET == "LINUX" then
-  shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h")
+  shell("wget https://github.com/nicbarker/clay/releases/download/v0.13/clay.h")
 elseif TARGET == "WIN" then
-  shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h")
+  exit(1)
+  -- shell("wget https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h")
 end
 mv("clay.h", "src/clay.h")
 
@@ -118,15 +136,39 @@ if TARGET == "LINUX" then
   mv("raylib-" .. RAYLIB_VERSION .. "_linux_amd64/include/*", "include")
   rm("raylib-" .. RAYLIB_VERSION .. "_linux_amd64.tar.gz")
   rm("-r raylib-" .. RAYLIB_VERSION .. "_linux_amd64")
+
   print("Compile and move nfd...")
   shell("cd nativefiledialog/build/gmake_linux && make config=release_x64")
   mv("nativefiledialog/build/lib/Release/x64/libnfd.a", "lib")
+
   print("Compile and move libspng...")
   shell("gcc -c libspng/spng/spng.c -o spng.o")
   shell("ar rcs lib/libspng.a spng.o")
+  
+  print("Download, compile and move zip (by kuba-- on github)...")
+  shell("wget https://github.com/kuba--/zip/archive/refs/tags/v"..ZIP_VERSION..".tar.gz")
+  shell("tar -xzvf v"..ZIP_VERSION..".tar.gz")
+  shell("mkdir -p zip-"..ZIP_VERSION.."/build")
+  shell("cd zip-"..ZIP_VERSION.."/build && cmake -DBUILD_SHARED_LIBS=false .. && cmake --build .")
+  mv("zip-"..ZIP_VERSION.."/lib/*.a", "lib")
+  mv("zip-"..ZIP_VERSION.."/LICENSE.txt", "licenses/zip.txt")
+  
+  print("Download and move cJSON...")
+  shell("wget https://github.com/DaveGamble/cJSON/archive/refs/tags/v"..CJSON_VERSION..".tar.gz")
+  shell("tar -xzvf v"..CJSON_VERSION..".tar.gz")
+  mv("cJSON-"..CJSON_VERSION.."/cJSON.*", "obz2cobz")
+  mv("cJSON-"..CJSON_VERSION.."/LICENSE", "licenses/cJSON.txt")
+  
+  print("Cleaning up...")
+  -- rm("zip-"..ZIP_VERSION)
+  rm("v"..ZIP_VERSION..".tar.gz*")
+  rm("v"..CJSON_VERSION..".tar.gz*")
+  rm("cJSON-"..CJSON_VERSION)
+  rm("zip-"..ZIP_VERSION)
   rm("spng.o")
   rm("nativefiledialog")
   rm("libspng")
+  print("Done.")
 elseif TARGET == "WIN" then
   print("Download and install raylib (for app only)...")
   shell("Invoke-WebRequest https://github.com/raysan5/raylib/releases/download/" .. RAYLIB_VERSION .. "/raylib-" .. RAYLIB_VERSION .. "_win64_mingw-w64.zip -OutFile raylib.zip")
