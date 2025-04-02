@@ -5,4 +5,6 @@ savecrash*
 *.csv
 */*.csv
 lib/*
+licenses/*
+obz2cobz/cJSON.*
 .config/*
