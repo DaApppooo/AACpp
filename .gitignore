@@ -7,5 +7,5 @@ savecrash*
 lib/*
 licenses/*
 obz2cobz/cJSON.*
-obz2cobz/plutosvg.*
+obz2cobz/plutosvg*
 .config/*
