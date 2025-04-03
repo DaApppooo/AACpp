@@ -9,6 +9,8 @@
 --  PROG=obz2cobz
 --   zip by kuba-- on github under MIT license
 --   cJSON by DaveGamble on github under MIT license
+--   plutosvg by sammycage under MIT license
+--   stb_image by nothings under public domain
 
 
 function shell(fmt, ...)
@@ -38,6 +40,7 @@ function popen(fmt, ...)
 end
 function rm(path)
   assert(not startswith(path, "/"), "rm (the lua function) rejects absolute paths just to be safe")
+  print("×", path)
   if TARGET == "WIN" then
     os.execute("powershell.exe rm -Recurse -Force " .. path)
   elseif TARGET == "LINUX" then
@@ -47,6 +50,7 @@ end
 function mv(src, dst)
   assert(not startswith(src, "/"), "mv (the lua function) rejects absolute paths just to be safe")
   assert(not startswith(dst, "/"), "mv (the lua function) rejects absolute paths just to be safe")
+  print(src, "->", dst)
   if TARGET == "WIN" then
     os.execute("powershell.exe mv -Force " .. src .. " " .. dst)
   elseif TARGET == "LINUX" then
@@ -82,6 +86,7 @@ TARGET = "LINUX"
 RAYLIB_VERSION = "5.5"
 CJSON_VERSION = "1.7.18"
 ZIP_VERSION = "0.3.3"
+PLUTOSVG_VERSION = "0.0.6"
 for _, a in pairs(arg) do
   if startswith(a, "target=") then
     TARGET = string.upper(string.sub(a, string.find(a, "=")+1))
@@ -150,21 +155,28 @@ if TARGET == "LINUX" then
   shell("tar -xzvf v"..ZIP_VERSION..".tar.gz")
   shell("mkdir -p zip-"..ZIP_VERSION.."/build")
   shell("cd zip-"..ZIP_VERSION.."/build && cmake -DBUILD_SHARED_LIBS=false .. && cmake --build .")
-  mv("zip-"..ZIP_VERSION.."/lib/*.a", "lib")
+  mv("zip-"..ZIP_VERSION.."/build/*.a", "lib")
   mv("zip-"..ZIP_VERSION.."/LICENSE.txt", "licenses/zip.txt")
-  
+
   print("Download and move cJSON...")
   shell("wget https://github.com/DaveGamble/cJSON/archive/refs/tags/v"..CJSON_VERSION..".tar.gz")
   shell("tar -xzvf v"..CJSON_VERSION..".tar.gz")
   mv("cJSON-"..CJSON_VERSION.."/cJSON.*", "obz2cobz")
   mv("cJSON-"..CJSON_VERSION.."/LICENSE", "licenses/cJSON.txt")
-  
+
+  print("Download and move plutosvg...")
+  shell("wget https://github.com/sammycage/plutosvg/archive/refs/tags/v"..PLUTOSVG_VERSION..".tar.gz")
+  shell("tar -xzvf v"..PLUTOSVG_VERSION..".tar.gz")
+  mv("plutosvg-"..PLUTOSVG_VERSION.."/source/plutosvg*", "obz2cobz")
+  mv("plutosvg-"..PLUTOSVG_VERSION.."/LICENSE", "licenses/plutosvg.txt")
+
   print("Cleaning up...")
-  -- rm("zip-"..ZIP_VERSION)
   rm("v"..ZIP_VERSION..".tar.gz*")
   rm("v"..CJSON_VERSION..".tar.gz*")
+  rm("v"..PLUTOSVG_VERSION..".tar.gz*")
   rm("cJSON-"..CJSON_VERSION)
   rm("zip-"..ZIP_VERSION)
+  rm("plutosvg-"..PLUTOSVG_VERSION)
   rm("spng.o")
   rm("nativefiledialog")
   rm("libspng")
