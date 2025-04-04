@@ -170,6 +170,10 @@ if TARGET == "LINUX" then
   mv("plutosvg-"..PLUTOSVG_VERSION.."/source/plutosvg*", "obz2cobz")
   mv("plutosvg-"..PLUTOSVG_VERSION.."/LICENSE", "licenses/plutosvg.txt")
 
+  print("Download and move stb_image...")
+  shell("wget https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_image.h")
+  mv("stb_image.h", "obz2cobz/stb_iamge.h")
+
   print("Cleaning up...")
   rm("v"..ZIP_VERSION..".tar.gz*")
   rm("v"..CJSON_VERSION..".tar.gz*")
