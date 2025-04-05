@@ -1,8 +1,8 @@
-#include "list.hpp"
+#include "../include/list.hpp"
 
-list<char>::list() {}
-
-list<char>::list(const char* init_ls) {
+constexpr list<char>::list(const char* init_ls)
+	: _data(nullptr), _cap(0)
+{
 	const isize _len = str_len(init_ls);
 	if (_len > 0) {
 		_data = (char*)malloc(sizeof(char)*_len + 1);
@@ -12,6 +12,16 @@ list<char>::list(const char* init_ls) {
 		_data = nullptr;
 		_cap = 0;
 	}
+}
+
+list<char> list<char>::copy() const {
+	const isize _len = len();
+	list<char> ret;
+	ret.init();
+	ret.prealloc(_len);
+	memcpy(ret._data, _data, sizeof(char)*(_len+1));
+	// Copying memory with length bytes.
+	return ret;
 }
 
 list<char>& list<char>::extend(View<char> ref_ext)

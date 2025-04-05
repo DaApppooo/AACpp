@@ -2,7 +2,7 @@
 #define H_RESMAN
 #define NO_CLAY
 #include "clay.h"
-#include "list.hpp"
+#include "../include/list.hpp"
 #include <raylib.h>
 
 using String = list<char>;

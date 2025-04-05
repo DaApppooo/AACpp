@@ -43,6 +43,7 @@ template <class T> struct View
 
 template <class T> class list
 {
+public:
   using Self = list<T>;
   template <class U>
   using _temp_has_destroyer = decltype(std::declval<U&>().destroy());
@@ -51,7 +52,6 @@ template <class T> class list
   T* _data;
   isize _cap;
 
-public:
   list();
   list(const T*);
   list(const list<T>& other) { memcpy(this, &other, sizeof(list<T>)); }
@@ -570,19 +570,22 @@ GEN inline Self operator + (const Self a, const T&& obj)
 template <>
 class list<char>
 {
+public:
   using T = char;
   T* _data;
   isize _cap;
 
-public:
-  list();
-  list(const char*);
-  list(const list<T>& other) { memcpy(this, &other, sizeof(list<T>)); }
-  list(const list<T>&& other) { memcpy(this, &other, sizeof(list<T>)); }
+  constexpr list() : _data(nullptr), _cap(0) {}
+  constexpr list(const char*);
+  constexpr list(const list<T>& other)
+    : _data(other._data), _cap(other._cap) {}
+  constexpr list(const list<T>&& other)
+    : _data(other._data), _cap(other._cap) {}
   inline Self& init() { _data = nullptr; _cap = 0; return *this; }
   inline Self& push(T element);
   Self& prextend(View<T> ref_pre);
   Self& extend(View<T> ref_ext);
+  inline Self& hold(Self& other);
   inline Self& insert(T element, index_t index);
   // Return value is not destroyed !!!
   inline T pop();
@@ -600,7 +603,7 @@ public:
   }
   inline Self& force_realloc();
   inline void destroy();
-  inline Self copy() const;
+  Self copy() const;
   inline Self& rmv(index_t index);
   inline View<T> to_view() const
   {
@@ -637,7 +640,7 @@ public:
   //  => other.cap := 0 (other.is_owned() := true)
   inline Self& own(list<T>& other);
 
-  inline T* data() const
+  inline constexpr T* data() const
   {
     return _data;
   }
@@ -674,6 +677,13 @@ inline Self& list<char>::clear() {
 
 inline isize list<char>::len() const {
 	return str_len(self._data);
+}
+
+inline Self& list<char>::hold(Self& other)
+{
+  self = other;
+  other._cap = 0;
+  return self;
 }
 
 inline Self& list<char>::push(char element) {
@@ -752,25 +762,21 @@ inline void list<char>::destroy()
   }
 }
 
-inline Self list<char>::copy() const {
-	const isize _len = len();
-	list<char> ret;
-	ret.init();
-	ret.prealloc(_len);
-	memcpy(ret._data, _data, sizeof(char)*(_len+1));
-	// Copying memory with length bytes.
-	return ret;
-}
-
 inline Self& list<char>::rmv(index_t index) {
 	const isize _len = len();
 	memmove(_data + index, _data + index + 1, sizeof(char)*_len);
 	return self;
 }
 
+using string = list<char>;
+constexpr inline bool operator == (const string a, const string b)
+{
+  return str_eq(a.data(), b.data());
+}
 
 #undef Self
 #undef self
 
 
 #endif /* H_LIST */
+

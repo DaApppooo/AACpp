@@ -2,15 +2,19 @@
 # Bullshit make
 from os import listdir, path, remove, stat, system, rename, makedirs
 import re
-from sys import argv
+from sys import argv, exit
 from json import load, dump
 
 FLAG_DEBUG = 1
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
-CFLAGS = f"-std=c++20 -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
-LFLAGS = "-rdynamic -lGL -lm -lpthread -ldl -lrt -lX11 -lz `pkg-config --cflags --libs gtk+-2.0` -L lib -lnfd -lraylib -lspng"
+CFLAGS = f"-std=c++20 -I include -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
+LFLAGS = (
+	"-rdynamic" if FLAG_DEBUG else ""
++	"-lGL -lm -lpthread -ldl -lrt -lX11 -lz `pkg-config --cflags --libs gtk+-2.0` -L lib -lnfd -lraylib -lspng"
+)
+OBZ2COBZ_LFLAGS = "-L lib -lplutosvg -lzip"
 OBJ_PATH = "temp"
 BIN = "bin/aac" # Bin path is deduced from this.
 CONFIG = "config/bm.json" # Same here
@@ -44,7 +48,7 @@ def save_opt():
 def yeet(code: int):
 	save_opt()
 	print(f"Exited with code {(code>>8)&0xff}")
-	quit(code)
+	exit(code)
 def fixmissing_files_opt():
 	for path_ in rls(
 		SRC_PATH,
@@ -119,12 +123,12 @@ if __name__ == "__main__":
 
 	match argv[1]:
 		case "obz2cobz":
-			L = list(rls("obz2cobz", lambda x: x.endswith(".cpp")))
+			L = list(rls("obz2cobz", lambda x: x.endswith(".cpp") or x.endswith(".c")))
 			for i in L:
-				if err := shell(f"g++ -c {i} -o temp/{path.basename(i)}.o"):
+				if err := shell(f"g++ -c {i} {CFLAGS} -o temp/{path.basename(i)}.o"):
 					yeet(err)
 			obj = ' '.join(f"temp/{path.basename(i)}.o" for i in L)
-			if err := shell(f"g++ {obj} -o obz2cobz"):
+			if err := shell(f"g++ {obj} {OBZ2COBZ_LFLAGS} -o bin/obz2cobz"):
 				yeet(err)
 		case "cxml":
 			for i in rls("cxml", lambda x: x.endswith(".cxml")):

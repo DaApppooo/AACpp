@@ -4,12 +4,12 @@
 #include <cassert>
 #include <raylib.h>
 #include "rlclay.h"
-#include "utils.hpp"
+#include "../include/utils.hpp"
 
 void Board::serialize(Stream f)
 {
-  f.write(layout_width);
-  f.write(layout_height);
+  f << (int&) layout_width;
+  f << (int&) layout_height;
   for (int i = 0; i < layout_width*layout_height; i++)
   {
     cells[i].serialize(f);
@@ -21,7 +21,7 @@ void Board::deserialize(Stream f)
   char buf[4];
   f.read(buf, 4);
   assert(memcmp(buf, "BRD", 4) == 0);
-  layout_width = f.read<int>();
+  f >> (int&)layout_width;
   layout_height = f.read<int>();
   cells = (Cell*)malloc(sizeof(Cell)*layout_width*layout_height);
   for (int i = 0; i < layout_width*layout_height; i++)

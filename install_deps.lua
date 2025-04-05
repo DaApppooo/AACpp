@@ -3,7 +3,7 @@
 --  PROG=aac
 --   raylib by raysan5 on github under zlib License
 --   nfd by by mlabbe on github under zlib license
---   libpng by (a bunch of people) on libpng.org under a custom open source licence 
+--   libspng by (a bunch of people) on libpng.org under the BSDL3.0
 --   clay by nicbarker on github under zlib license
 -- TARGET={LINUX,WIN,ANDROID}
 --  PROG=obz2cobz
@@ -87,6 +87,7 @@ RAYLIB_VERSION = "5.5"
 CJSON_VERSION = "1.7.18"
 ZIP_VERSION = "0.3.3"
 PLUTOSVG_VERSION = "0.0.6"
+PLUTOVG_VERSION = "1.0.0" -- dependency of plutosvg
 for _, a in pairs(arg) do
   if startswith(a, "target=") then
     TARGET = string.upper(string.sub(a, string.find(a, "=")+1))
@@ -164,23 +165,28 @@ if TARGET == "LINUX" then
   mv("cJSON-"..CJSON_VERSION.."/cJSON.*", "obz2cobz")
   mv("cJSON-"..CJSON_VERSION.."/LICENSE", "licenses/cJSON.txt")
 
-  print("Download and move plutosvg...")
-  shell("wget https://github.com/sammycage/plutosvg/archive/refs/tags/v"..PLUTOSVG_VERSION..".tar.gz")
-  shell("tar -xzvf v"..PLUTOSVG_VERSION..".tar.gz")
-  mv("plutosvg-"..PLUTOSVG_VERSION.."/source/plutosvg*", "obz2cobz")
-  mv("plutosvg-"..PLUTOSVG_VERSION.."/LICENSE", "licenses/plutosvg.txt")
+  print("Download, compile and move plutosvg...")
+  if exists("plutosvg") then
+    rm("plutosvg")
+  end
+  shell("git clone --recursive https://github.com/sammycage/plutosvg.git")
+  shell("cd plutosvg && cmake -B build . && cmake --build build")
+  mv("plutosvg/source/*", "include")
+  mv("plutosvg/plutovg/include/plutovg.h", "include")
+  -- mv("plutosvg/build/plutovg/*.a", "include") -- reactivate this line if plutosvg.a is not enough
+  mv("plutosvg/build/*.a", "lib")
+  mv("plutosvg/LICENSE", "licenses/plutosvg.txt")
 
   print("Download and move stb_image...")
   shell("wget https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_image.h")
-  mv("stb_image.h", "obz2cobz/stb_iamge.h")
+  mv("stb_image.h", "obz2cobz/stb_image.h")
 
   print("Cleaning up...")
   rm("v"..ZIP_VERSION..".tar.gz*")
   rm("v"..CJSON_VERSION..".tar.gz*")
-  rm("v"..PLUTOSVG_VERSION..".tar.gz*")
   rm("cJSON-"..CJSON_VERSION)
   rm("zip-"..ZIP_VERSION)
-  rm("plutosvg-"..PLUTOSVG_VERSION)
+  rm("plutosvg")
   rm("spng.o")
   rm("nativefiledialog")
   rm("libspng")

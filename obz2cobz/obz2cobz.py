@@ -197,7 +197,8 @@ LEGACY_COLORS = {
 "Yellow":"#FFFF00",
 "YellowGreen":"#9ACD32"
 }
-LEGACY_COLORS = { k:pack('>i', int(v[1:], 16)) for k,v in LEGACY_COLORS.items() }
+LEGACY_COLORS = { k:pack('>4B', *(int(v[1:], 16) for j in range(3))) for k,v in LEGACY_COLORS.items() }
+print(LEGACY_COLORS["AliceBlue"])
 ERROR_COLOR = bytes([0, 0, 0, 0])
 _SAVE_CRASH_FILE = open(f"savecrash{int(time.time())}.dat", 'wb')
 
@@ -230,16 +231,6 @@ def info(msg: str):
 def todo():
     raise NotImplementedError()
 
-def var2fixed_utf8(s: bytes) -> bytes:
-    UTF8_BIT = 1 << 7
-    r = bytes([])
-    n = 0
-    for i in s:
-        n = (n << 8) | int(i)
-        if not (int(i) & UTF8_BIT):
-            r += pack('=i', n)
-            n = 0
-    return r
 
 class Cell:
     name: str
@@ -302,9 +293,9 @@ class Board:
     name: str
     obz_id: str
     def solve_parent(self, cobz):
-        
+        pass
     def serialize(self) -> bytes:
-        res = pack('=iii', self.w, self.h, self.parent)
+        res = pack('=iiii', self.w, self.h, self.parent, len(self.cells))
         for i in self.cells:
             res += i.serialize()
         return res
@@ -365,7 +356,6 @@ class CompiledOBZ:
         # Now run down mode simple optimization (+y goes downward)
         # Probably the worst algorithm i've ever written
         # avg of o(n^3/2) (maybe even more. I haven't made the math)
-        # but gives what looks like optimal packing (i don't think it is)
         fits = [Fit(Rect(o.rect.x+o.rect.w, o.rect.y, MAXW - o.rect.w, o.rect.h), i) for i,o in enumerate(objs)]
         max_dim = [0,0]
         base_fixed = 0
