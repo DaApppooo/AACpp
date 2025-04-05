@@ -5,7 +5,11 @@ savecrash*
 *.csv
 */*.csv
 lib/*
+include/*
+!include/list.hpp
+!include/utils.hpp
 licenses/*
 obz2cobz/cJSON.*
 obz2cobz/plutosvg*
+obz2cobz/stb*
 .config/*
