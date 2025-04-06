@@ -1,6 +1,6 @@
 #ifndef H_THEME
 #define H_THEME
-#include "utils.hpp"
+#include "../include/utils.hpp"
 #define NO_CLAY
 #include "clay.h"
 

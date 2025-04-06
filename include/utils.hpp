@@ -1,5 +1,4 @@
 #pragma once
-#include "list.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cctype>
@@ -12,7 +11,12 @@
 #define H_UTILS
 
 #define todo() {dblog(LOG_FATAL, "TODO REACHED %s:%i", __FILE__, __LINE__); abort();}
+#define dblog(WARN, ...) TraceLog(WARN, __VA_ARGS__)
+#define assertm(cond, ...) if (!(cond)) { dblog(LOG_FATAL, __VA_ARGS__); assert((cond));}
+#define poff(ptr, byte_offset) ((decltype(ptr))(((uint8_t*)(ptr)) + (byte_offset)))
 
+using isize = int64_t;
+using index_t = int32_t;
 using u64 = uint64_t;
 using i64 = int64_t;
 using i32 = int32_t;
@@ -153,23 +157,10 @@ struct FixedString
 
 
 long FileEditTime(const char* filename);
+// Returns the exact return value of the given command
+int shell(const char* command);
 
 const char* open_file_dialogue();
-void init_tts();
-void tts_change(FixedString& w); // FUTURE: takes an index as parameter
-void tts_push(FixedString& w);
-void tts_backspace(); // remove last pushed piece or word
-void tts_clear();
-const char* tts_fill_final_buffer();
-void tts_play();
-void destroy_tts();
-
-inline void tts_change(FixedString& w)
-{
-  tts_backspace();
-  tts_push(w);
-}
-
 const char* fix2var_utf8(const FixedString& s, char* ob);
 
 [[gnu::const]] bool str_eq(const char* s1, const char* s2);

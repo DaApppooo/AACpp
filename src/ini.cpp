@@ -228,6 +228,9 @@ void ini_free(ini_t *ini) {
   free(ini);
 }
 
+const char* ini_set(ini_t *ini, const char *section, const char *key) {
+
+}
 
 const char* ini_get(ini_t *ini, const char *section, const char *key) {
   char *current_section = (char*)"";

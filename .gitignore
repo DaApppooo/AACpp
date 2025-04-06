@@ -9,6 +9,7 @@ include/*
 !include/list.hpp
 !include/utils.hpp
 licenses/*
+tts/*
 obz2cobz/cJSON.*
 obz2cobz/plutosvg*
 obz2cobz/stb*
