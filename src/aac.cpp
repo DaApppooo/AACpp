@@ -1,4 +1,3 @@
-#include "options.hpp"
 #include "resman.hpp"
 #include <csignal>
 #include <cstdio>
@@ -12,6 +11,8 @@
 #include "utils.hpp"
 #include "board.hpp"
 #include "proc.hpp"
+#include "tts.hpp"
+#include "settings.hpp"
 
 inline float throbber_func(float x)
 {
@@ -53,7 +54,8 @@ int main()
   }
 
   init_tts();
-  init_options();
+  init_settings();
+  settings_load();
   
   {
     clay_req_mem = Clay_MinMemorySize();
@@ -175,9 +177,9 @@ int main()
     Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::touch_press);
     Clay_UpdateScrollContainers(true, {mwm.x, mwm.y}, dt);
 
-    if (options_open)
+    if (settings_open)
     {
-      options_update(render_cmds);
+      settings_update(render_cmds);
     }
     else
     {
@@ -210,15 +212,15 @@ int main()
     {
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_parent"))))
       {
-        if (is_board_index(board_with_index(current).cells[0].parent))
+        if (is_board_index(board_with_index(current).parent))
         {
-          current = board_with_index(current).cells[0].parent;
+          current = board_with_index(current).parent;
           current_actions.init();
         }
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_options"))))
       {
-        options_show();
+        settings_show();
       }
       if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_backspace"))))
       {
@@ -242,7 +244,7 @@ SAFELY_EXIT:
   free(allocated_mem);
 
   Clay_Raylib_Close();
-  destroy_options();
+  destroy_settings();
   destroy_res();
   destroy_tts();
   CloseWindow();

@@ -1,3 +1,4 @@
+#include "resman.hpp"
 #include <algorithm>
 extern "C"
 {
@@ -6,6 +7,9 @@ extern "C"
 #include "webcolor.hpp"
 #include "theme.hpp"
 #include "tts.hpp"
+#define NO_CLAY
+#include "clay.h"
+#include "rlclay.h"
 
 Font font_array[1];
 
@@ -96,3 +100,33 @@ void settings_save()
 {
   
 }
+
+bool settings_open;
+
+constexpr inline float max(float a, float b)
+{
+  // being explicit for g++
+  if (a > b) return a;
+  else return b;
+}
+
+void settings_update(Clay_RenderCommandArray& render_cmds)
+{
+  if (!settings_open)
+    return;
+  constexpr float MAX_WIDTH = 800.f;
+  const float W = max(XMAX, MAX_WIDTH);
+  const Rectangle rect = {
+    XMAX/2.f - W/2.f, 0.f,
+    W, YMAX
+  };
+  layout_options(render_cmds);
+  BeginDrawing();
+    Clay_Raylib_Render(render_cmds, theme::fonts);
+  EndDrawing();
+}
+
+void destroy_settings()
+{
+}
+

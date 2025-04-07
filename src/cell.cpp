@@ -1,6 +1,7 @@
 #include "resman.hpp"
 #include "theme.hpp"
 #include "utils.hpp"
+#include "tts.hpp"
 #include "board.hpp"
 // #define CLAY__MIN(x, y) ((x < y) ? (x) : (y))
 // #define CLAY__MAX(x, y) ((x > y) ? (x) : (y))
@@ -164,31 +165,19 @@ void Cell::serialize(Stream f)
 void Cell::deserialize(Stream f)
 {
   assert(sizeof(isize) == 8);
-  char buf[3];
   i64 size;
-  f.read(buf, 3);
-  if (memcmp(buf, "CLL", 3) != 0)
-  {
-    TraceLog(
-      LOG_ERROR,
-      "Miss alignement, expected to read CLL, read %c%c%c instead (position %p)",
-      buf[0], buf[1], buf[2],
-      (void*)(ptrdiff_t)(ftell(f._f) - 3)
-    );
-    abort();
-  }
-  tex_id = f.read<int>();
+  f.check_anchor("CLL");
+  f >> (int&) tex_id;
   name.deserialize(f._f);
-  size = f.read<i64>();
+  f >> (i64&) size;
   actions.prealloc(size);
   actions.set_len(size);
   for (int i = 0; i < size; i++)
   {
     actions[i].deserialize(f._f);
   }
-  parent = f.read<opt_board_index_t>();
-  child = f.read<opt_board_index_t>();
-  background = f.read<Color>();
-  border = f.read<Color>();
+  f >> (opt_board_index_t&) child;
+  f >> (Color&) background;
+  f >> (Color&) border;
 }
 

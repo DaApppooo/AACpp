@@ -763,7 +763,7 @@ inline Self& list<char>::rmv(index_t index) {
 }
 
 using string = list<char>;
-constexpr inline bool operator == (const string a, const string b)
+inline bool operator == (const string a, const string b)
 {
   return str_eq(a.data(), b.data());
 }

@@ -1,9 +1,12 @@
-#include "../include/utils.hpp"
-#include "../include/piper.hpp"
+#include "utils.hpp"
+#include "piper.hpp"
+#include <optional>
+#include <raylib.h>
 #include "tts.hpp"
 
 constexpr int TTS_MSG_LEN = 2048;
 FixedString::Char tts_msg_builder[TTS_MSG_LEN];
+TTSMode tts_mode;
 char tts_param[TTS_PARAM_MAX+1];
 int tts_pos = 0;
 
@@ -58,10 +61,35 @@ void tts_play()
         piper::Voice voice;
         std::string text;
         std::ofstream audio_file;
+        std::optional<piper::SpeakerId> spkid;
         piper::SynthesisResult res;
-        audio_file.open("assets/tmp.wav");
-        piper::loadVoice(config, , std::string modelConfigPath, Voice &voice, std::optional<SpeakerId> &speakerId, bool useCuda)
-        piper::textToWavFile(config, voice, TTS_MSG_FINAL, audio_file, res);
+        Sound rlsound;
+        piper::loadVoice(
+          config, tts_param, std::string(tts_param)+".json",
+          voice, spkid, false
+        );
+        // if (voice.phonemizeConfig.eSpeakConfig)
+        if (voice.phonemizeConfig.phonemeType == piper::eSpeakPhonemes) {
+          TraceLog(LOG_ERROR, "Voice uses eSpeak phonemes which isn't supported yet.");
+          return;
+        }
+        config.useESpeak = false;
+        if (voice.phonemizeConfig.eSpeak.voice == "ar")
+        {
+          TraceLog(LOG_ERROR, "Arabic (with tashkeel) is not yet supported.");
+          return;
+        }
+        piper::initialize(config);
+        audio_file.open("assets/tmp.wav", std::ios::binary);
+        piper::textToWavFile(config, voice, tts_msg_final, audio_file, res);
+        audio_file.close();
+        TraceLog(LOG_INFO, "(lib)PIPER: Generated wave file successfuly.");
+        rlsound = LoadSound("assets/tmp.wav"); // emits info msg
+        if (rlsound.frameCount == 0)
+          return;
+        PlaySound(rlsound);
+        UnloadSound(rlsound);
+        piper::terminate(config);
         break;
       }
   }

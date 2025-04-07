@@ -4,15 +4,18 @@ from os import listdir, path, remove, stat, system, rename, makedirs
 import re
 from sys import argv, exit
 from json import load, dump
+import shlex
 
 FLAG_DEBUG = 1
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
-CFLAGS = f"-std=c++20 -I include -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
+CFLAGS = f"-std=c++20 -I include -I include/piper -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
 LFLAGS = (
-	"-rdynamic" if FLAG_DEBUG else ""
-+	"-lGL -lm -lpthread -ldl -lrt -lX11 -lz `pkg-config --cflags --libs gtk+-2.0` -L lib -lnfd -lraylib -lspng"
+	("-rdynamic " if FLAG_DEBUG else "")
++	"-lGL -lm -lpthread -ldl -lrt -lX11 -lz "
++   "`pkg-config --cflags --libs gtk+-2.0` -L lib -lnfd -Wl,-Bdynamic -lraylib -lspng "
++   "-lpiper -liniparser -lespeak-ng -lonnxruntime -lpiper_phonemize"
 )
 OBZ2COBZ_LFLAGS = "-L lib -lplutosvg -lzip"
 OBJ_PATH = "temp"
@@ -22,6 +25,7 @@ EXT = ".cpp"
 CXML = "cxml"
 EXAMPLE = "./bin/aac"
 
+pwd = __file__.rsplit(path.sep,1)[0]
 def rls(path_, filter = lambda x: True):
 	for target in listdir(path_):
 		target = f"{path_}/{target}"
@@ -60,6 +64,7 @@ def fixmissing_files_opt():
 		if path_ not in opt:
 			opt[path_] = last_ch(path_)
 def compile_all(check_ch_time = True, cflags = ""):
+	r = []
 	for path_ in rls(
 		SRC_PATH,
 		lambda p:
@@ -67,14 +72,17 @@ def compile_all(check_ch_time = True, cflags = ""):
 	):
 		# Iter through all source .cpp files
 		if (not check_ch_time) or opt[path_] < last_ch(path_):
-			compile_to_obj(path_, cflags)
+			r.append(compile_to_obj(path_, cflags))
+	return r
 def compile_to_obj(p: str, cflags=""):
 	""" cflags are additional flags to the setting CFLAGS """
 	out_path = f"{OBJ_PATH}/{path.basename(p)}"[:-len(EXT)] + '.o'
-	if code := shell(f"{CC} -c {p} -o {out_path} {CFLAGS} {cflags}"):
+	cmd = f"{CC} -c {p} -o {out_path} {CFLAGS} {cflags}"
+	if code := shell(cmd):
 		yeet(code)
 	else:
 		opt[p] = last_ch(p)
+		return {"directory":pwd, "arguments":shlex.split(cmd), "file":p}
 def link_all(cflags = ""):
 	""" cflags are additional flags to the setting CFLAGS """
 	j = " ".join(rls(OBJ_PATH, lambda x: x[-2:] == ".o"))
@@ -137,7 +145,9 @@ if __name__ == "__main__":
 			if err := shell(f"g++ -fPIC -o cxml/ui.so -shared {CXML}/*.cpp"):
 				yeet(1)
 		case "all":
-			compile_all(check_ch_time=False, cflags="-O0")
+			r = compile_all(check_ch_time=False, cflags="-O0")
+			with open("compile_commands.json", "w") as f:
+				dump(r, f)
 			yeet(0)
 		case "production":
 			compile_all(check_ch_time=False, cflags="-O3")

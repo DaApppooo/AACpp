@@ -14,3 +14,4 @@ obz2cobz/cJSON.*
 obz2cobz/plutosvg*
 obz2cobz/stb*
 .config/*
+compile_commands.json

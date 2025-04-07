@@ -10,19 +10,19 @@ void Board::serialize(Stream f)
 {
   f << (int&) layout_width;
   f << (int&) layout_height;
+  f << (int&) parent;
   for (int i = 0; i < layout_width*layout_height; i++)
   {
     cells[i].serialize(f);
   }
-  // parent is obvious based on how hierarchy is organized linearly
 }
 void Board::deserialize(Stream f)
 {
   char buf[4];
-  f.read(buf, 4);
-  assert(memcmp(buf, "BRD", 4) == 0);
-  f >> (int&)layout_width;
-  layout_height = f.read<int>();
+  f.check_anchor("BRD");
+  f >> (int&) layout_width;
+  f >> (int&) layout_height;
+  f >> (int&) parent;
   cells = (Cell*)malloc(sizeof(Cell)*layout_width*layout_height);
   for (int i = 0; i < layout_width*layout_height; i++)
   {

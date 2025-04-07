@@ -1,8 +1,8 @@
 #include "resman.hpp"
 #include "board.hpp"
-#include "list.hpp"
+#include "../include/list.hpp"
 #include "theme.hpp"
-#include "utils.hpp"
+#include "../include/utils.hpp"
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
@@ -52,26 +52,10 @@ void TextureDumpLoad(Texture& tex, Stream s)
   unsigned int id = 0;
 
   tex.id = tex.height = tex.width = 0;
-  s.read(buf, 4);
   // Here is some weird shenanigans because libspng doesn't seem to read the
   // whole image data and stops before the end. Thus these alignement anchors
   // are necessary (the alignement anchor being "IMG\x00")
-  while (memcmp(buf, "IMG", 4) != 0)
-  {
-    buf[0] = buf[1];
-    buf[1] = buf[2];
-    buf[2] = buf[3];
-    buf[3] = fgetc(s._f);
-    if (buf[3] == EOF)
-    {
-      TraceLog(
-        LOG_ERROR,
-        "Image misalignement. ",
-        buf[0], buf[1], buf[2], buf[3]
-      );
-      goto error;
-    }
-  }
+  s.align_until_anchor("IMG");
 
   ctx = spng_ctx_new(0);
   // temp.data = (s._f, &temp.width, &temp.height, &channels, 0);
@@ -203,7 +187,7 @@ int init_res(Ref<Stream> s)
   texs.init();
   boards.init();
 
-  board_count = s.read<isize>();
+  s >> (isize&) board_count;
   boards.prealloc(board_count);
   for (isize i = 0; i < board_count; i++)
   {
@@ -213,14 +197,14 @@ int init_res(Ref<Stream> s)
   }
 
   // Rectangles
-  tex_count = s.read<isize>();
+  s >> (isize&) tex_count;
   texs.prealloc(tex_count);
   fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
   texs.set_len(tex_count);
   // Spritesheets
   const float LOADING_W = 0.1f * XMAX;
   const float LOADING_H = 0.05f * YMAX;
-  tex_count = s.read<isize>();
+  s >> (isize&) tex_count;
   spritesheets.prealloc(tex_count);
   for (isize i = 0; i < tex_count; i++)
   {

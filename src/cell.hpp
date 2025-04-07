@@ -1,7 +1,6 @@
-#include "utils.hpp"
+#include "../include/utils.hpp"
 #include <raylib.h>
 #include "resman.hpp"
-#include "theme.hpp"
 
 struct Board;
 
