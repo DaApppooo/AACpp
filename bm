@@ -12,12 +12,14 @@ CC = "g++"
 SRC_PATH = "src"
 CFLAGS = f"-std=c++20 -I include -I include/piper -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
 LFLAGS = (
-	("-rdynamic " if FLAG_DEBUG else "")
+	# ("-rdynamic " if FLAG_DEBUG else "")
+	""
 +	"-lGL -lm -lpthread -ldl -lrt -lX11 -lz "
-+   "`pkg-config --cflags --libs gtk+-2.0` -L lib -lnfd -Wl,-Bdynamic -lraylib -lspng "
-+   "-lpiper -liniparser -lespeak-ng -lonnxruntime -lpiper_phonemize"
++   "`pkg-config --cflags --libs gtk+-2.0` -Llib -lnfd -Wl,-Bdynamic -lraylib"
++   " -lspng -lpiper -liniparser -lespeak-ng -lonnxruntime -lpiper_phonemize"
 )
-OBZ2COBZ_LFLAGS = "-L lib -lplutosvg -lzip"
+LIB_DIR = "lib"
+OBZ2COBZ_LFLAGS = "-Llib -lplutosvg -lzip"
 OBJ_PATH = "temp"
 BIN = "bin/aac" # Bin path is deduced from this.
 CONFIG = "config/bm.json" # Same here
@@ -91,7 +93,7 @@ def link_all(cflags = ""):
 	if code := shell(f"{CC} {j} -o {BIN} {CFLAGS} {cflags} {LFLAGS}"):
 		yeet(code)
 def run_example():
-	if code := shell(EXAMPLE):
+	if code := shell(f"LD_LIBRARY_PATH={LIB_DIR} {EXAMPLE}"):
 		yeet(code)
 def debugging(tool: str):
 	match tool:

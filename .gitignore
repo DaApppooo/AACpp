@@ -15,3 +15,4 @@ obz2cobz/plutosvg*
 obz2cobz/stb*
 .config/*
 compile_commands.json
+.cache/*

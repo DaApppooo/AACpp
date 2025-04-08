@@ -54,7 +54,6 @@ int main()
   }
 
   init_tts();
-  init_settings();
   settings_load();
   
   {
