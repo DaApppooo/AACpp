@@ -76,10 +76,8 @@ going, and what you can contribute to if you want to.
 
 ## Q&A
 
-> The program doesn't produce any sound.
-- It's most likely that your system doesn't have a default TTS client. In this
-  case, if you're on linux or windows, you need to have a `TTS` environement
-  variable. For android or iOS, please file an [issue](https://github.com/DaApppooo/AACpp/issues/new?assignees=DaApppooo&labels=&projects=&template=bug--or-problem-with-default-behavior-in-general--report.md&title=)
+> There will be a few guides on installing and using the app on different
+> systems. Idk.
 
 > After fixing all of the above, it still doesn't work on my system.
 - Please take the time to write an
