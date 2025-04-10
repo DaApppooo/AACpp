@@ -10,16 +10,13 @@ FLAG_DEBUG = 1
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
-CFLAGS = f"-std=c++20 -I include -I include/piper -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
+CFLAGS = f"-std=c++20 -I include -I include/piper -I src/shared -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
 LFLAGS = (
-	# ("-rdynamic " if FLAG_DEBUG else "")
-	""
-+	"-lGL -lm -lpthread -ldl -lrt -lX11 -lz "
+	"-lGL -lm -lpthread -ldl -lrt -lX11 -lz "
 +   "`pkg-config --cflags --libs gtk+-2.0` -Llib -lnfd -Wl,-Bdynamic -lraylib"
 +   " -lspng -lpiper -liniparser -lespeak-ng -lonnxruntime -lpiper_phonemize"
 )
 LIB_DIR = "lib"
-OBZ2COBZ_LFLAGS = "-Llib -lplutosvg -lzip"
 OBJ_PATH = "temp"
 BIN = "bin/aac" # Bin path is deduced from this.
 CONFIG = "config/bm.json" # Same here
