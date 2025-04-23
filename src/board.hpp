@@ -1,7 +1,7 @@
 #ifndef H_BOARD
 #define H_BOARD
 #include "resman.hpp"
-#include "../include/utils.hpp"
+#include "utils.hpp"
 #include "cell.hpp"
 #pragma once
 

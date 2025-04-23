@@ -10,11 +10,12 @@ FLAG_DEBUG = 1
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
-CFLAGS = f"-std=c++20 -I include -I include/piper -I src/shared -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
+CFLAGS = f"-std=c++20 -D FILE_DIALOG -I include -I include/piper -I src/shared -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
 LFLAGS = (
 	"-lGL -lm -lpthread -ldl -lrt -lX11 -lz "
 +   "`pkg-config --cflags --libs gtk+-2.0` -Llib -lnfd -Wl,-Bdynamic -lraylib"
 +   " -lspng -lpiper -liniparser -lespeak-ng -lonnxruntime -lpiper_phonemize"
++   " -lui"
 )
 LIB_DIR = "lib"
 OBJ_PATH = "temp"
@@ -96,11 +97,11 @@ def debugging(tool: str):
 	match tool:
 		case "valgrind" | "mem" | "v":
 			LEAK_CHECK = "--leak-check=full --show-leak-kinds=all"
-			if code := shell(f"valgrind -s -- {BIN}"):
+			if code := shell(f"LD_LIBRARY_PATH={LIB_DIR} valgrind -s -- {BIN}"):
 				yeet(code)
 		# add more tools here
 		case _:
-			if code := shell(f"gdb {BIN}"):
+			if code := shell(f"LD_LIBRARY_PATH={LIB_DIR} gdb {BIN}"):
 				yeet(code)
 
 if VERBOSE:
@@ -141,8 +142,9 @@ if __name__ == "__main__":
 			for i in rls("cxml", lambda x: x.endswith(".cxml")):
 				if err := shell(f"python3 cxml/trans.py {i}"):
 					yeet(err)
-			if err := shell(f"g++ -fPIC -o cxml/ui.so -shared {CXML}/*.cpp"):
+			if err := shell(f"g++ -fPIC -o cxml/ui.so {CFLAGS} -shared {CXML}/*.cpp"):
 				yeet(1)
+			rename("cxml/ui.so", "lib/libui.so")
 		case "all":
 			r = compile_all(check_ch_time=False, cflags="-O0")
 			with open("compile_commands.json", "w") as f:

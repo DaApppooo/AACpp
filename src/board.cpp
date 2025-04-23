@@ -4,7 +4,8 @@
 #include <cassert>
 #include <raylib.h>
 #include "rlclay.h"
-#include "../include/utils.hpp"
+#include "utils.hpp"
+#include "globals.hpp"
 
 void Board::serialize(Stream f)
 {

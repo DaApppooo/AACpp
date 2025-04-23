@@ -1,4 +1,4 @@
-#include "../include/utils.hpp"
+#include "utils.hpp"
 
 const int TTS_PARAM_MAX = 1023;
 enum TTSMode { TTS_PIPER };

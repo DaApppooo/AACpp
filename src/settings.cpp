@@ -5,6 +5,7 @@ extern "C"
 #include "../include/iniparser.h"
 }
 #include "webcolor.hpp"
+#include "globals.hpp"
 #include "theme.hpp"
 #include "tts.hpp"
 #define NO_CLAY
@@ -42,7 +43,7 @@ else
 void settings_load()
 {
   const char* p = nullptr;
-  dictionary* cf = iniparser_load("config/defaults.ini");
+  dictionary* cf = iniparser_load("assets/settings.ini");
   if (cf == nullptr)
   {
     TraceLog(LOG_ERROR, "Failed to load settings file ! Program might look weird");
@@ -63,17 +64,21 @@ void settings_load()
     theme::text_color = ~ color_parse_or(p, WHITE);
   LDPWARN("commands:background")
     theme::command_background = ~ color_parse_or(p, {100, 110, 255, 255});
+  LDPWARN("global:default_board")
+  {
+    
+  }
   LDPWARN("global:font_face")
   {
     if (isspace(*p) || *p == 0)
-      font_array[0] = LoadFontEx("res/font.ttf", theme::font_size, 0, 0);
+      font_array[0] = LoadFontEx("assets/font.ttf", theme::font_size, 0, 0);
     else
     {
       font_array[0] = LoadFontEx(p, theme::font_size, 0, 0);
       if (font_array[0].texture.id == 0)
       {
         TraceLog(LOG_INFO, "Loading packaged font instead of specified font because of a failure.");
-        font_array[0] = LoadFontEx("res/font.ttf", theme::font_size, 0, 0);
+        font_array[0] = LoadFontEx("assets/font.ttf", theme::font_size, 0, 0);
         assert(font_array[0].texture.id != 0);
       }
     }

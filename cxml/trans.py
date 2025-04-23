@@ -8,6 +8,9 @@ with open(argv[1]) as f:
 
 ATTRIBUTES = (
   'id',
+  # border stuff but it has to be put before left,right,top,bottom
+  'color',
+    'r', 'g', 'b', 'a',
   'layout',
     'sizing',
       'width',
@@ -31,9 +34,12 @@ ATTRIBUTES = (
   # ...
   'custom',
   'scroll',
-  'border'
+  'border',
+    'betweenChildren'
 )
-
+def log(x):
+  print(x)
+  return x
 class FieldBuilder:
   @staticmethod
   def use(attrs: dict[str,str]) -> Self:
@@ -102,7 +108,7 @@ class FieldBuilder:
       '{'
       + ','.join(
         f".{k}={fmt(v)}"
-        for k,v in sorted(self._dct.items(), key=lambda x: ATTRIBUTES.index(x[0]))
+        for k,v in sorted(self._dct.items(), key=lambda x: ATTRIBUTES.index(log(x[0])))
       )
       + '}'
     )
@@ -164,6 +170,8 @@ class ClayBox:
       else:
         assert False, "Padding syntax must be one of: lrtb | x,y | left,right,top,bottom"
     field.func('layout.padding', PADDING)
+    field.func('bw', PADDING)
+    field.alias('bw', 'border.width')
         
 
     # Indexed ID (first transform, then mixin with basic ID)
@@ -186,7 +194,12 @@ tags = {
   "box": ClayBox({}),
   "margin": ClayBox({'backgroundColor': '{0,0,0,0}'}),
   "img": ClayBox({'backgroundColor': '{255,255,255,255}', 'layout.sizing.width': 'GROW', 'layout.sizing.height': 'GROW'}),
-  "text": clay_text
+  "text": clay_text,
+  "obtn": ClayBox({'child-align.y':'center', 'w':'grow', 'h':'150',
+      'border.color':'{150,150,150,255}', 'border.width.bottom':'2',
+      'border.width.left':'2', 'border.width.right':'2',
+      'pad':'theme::gpad,theme::gpad'
+    })
 }
 
 def parse(elem):

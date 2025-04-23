@@ -7,7 +7,27 @@
     <margin w='grow' h='grow'/>
     <column w='800' h='grow' scroll='v'>
 
-
+    <obtn id="load_board">
+      <text config='get_font_config()'> CLAY_STRING("Load new board") </text>
+    </obtn>
+    <obtn id="default_board">
+      <text config='get_font_config()'> CLAY_STRING("Set default board") </text>
+    </obtn>
+    <obtn id="background">
+      <text config='get_font_config()'> CLAY_STRING("Change background color") </text>
+      <box w='grow' h='grow' child-align.x='right' child-align.y='center'>
+        <box w='50' h='50' border.color='{0,0,0,255}' bw='2' bg='theme::background_color'></box>
+      </box>
+    </obtn>
+    <obtn id="button">
+      <text config='get_font_config()'> CLAY_STRING("Change button color") </text>
+      <box w='grow' h='grow' child-align.x='right' child-align.y='center'>
+        <box w='50' h='50' border.color='{0,0,0,255}' bw='2' bg='theme::command_background'></box>
+      </box>
+    </obtn>
+    <obtn id="font">
+      <text config='get_font_config()'> CLAY_STRING("Change font") </text>
+    </obtn>
     
     </column>
     <margin w='grow' h='grow'/>

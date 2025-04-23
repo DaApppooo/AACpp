@@ -1,6 +1,7 @@
 #ifndef H_THEME
 #define H_THEME
-#include "../include/utils.hpp"
+#include "utils.hpp"
+#include <raylib.h>
 #define NO_CLAY
 #include "clay.h"
 
@@ -13,7 +14,7 @@ namespace theme
   extern Clay_Color command_background;
   extern uint16_t font_size;
   extern Clay_Color text_field_bg_color;
-  extern float text_space_width; // SET BY RESMAN.cpp, NOT BY THEME.cpp
+  extern float text_space_width; // SET BY resman.cpp, NOT BY settings.cpp
   extern Font* fonts;
   // constexpr Clay_Color text_color = { 53, 53, 53, 255 };
   constexpr Clay_Sizing GROW = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() };

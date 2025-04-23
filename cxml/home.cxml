@@ -5,8 +5,8 @@
       <img id="btn_options" image.imageData="?btns+BTI_OPT" image.sourceDimensions='?theme::IMG_SCALE' />
     </box>
     <margin w='theme::SAFETY_MARGIN' h='GROW'/>
-    <box bg='?theme::command_background' w='theme::BAR_HEIGHT - theme::gpad*2' h='theme::BAR_HEIGHT - theme::gpad*2'>
-      <img id="btn_parent" image.imageData="?btns+BTI_UP" image.sourceDimensions='?theme::IMG_SCALE' />
+    <box id="btn_parent" bg='?theme::command_background' w='theme::BAR_HEIGHT - theme::gpad*2' h='theme::BAR_HEIGHT - theme::gpad*2'>
+      <img image.imageData="?btns+BTI_UP" image.sourceDimensions='?theme::IMG_SCALE' />
     </box>
   <!--       vvv this doesn't work for some reason, waiting for clay update   -->
   <!--   PUT THAT IN THE FOLLOWING BLOCK -->

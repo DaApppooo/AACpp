@@ -13,6 +13,7 @@
 #include "proc.hpp"
 #include "tts.hpp"
 #include "settings.hpp"
+#include "globals.hpp"
 
 inline float throbber_func(float x)
 {
@@ -55,6 +56,7 @@ int main()
 
   init_tts();
   settings_load();
+  assert(theme::fonts != nullptr);
   
   {
     clay_req_mem = Clay_MinMemorySize();

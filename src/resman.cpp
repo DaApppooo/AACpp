@@ -1,8 +1,8 @@
 #include "resman.hpp"
 #include "board.hpp"
-#include "../include/list.hpp"
+#include "list.hpp"
 #include "theme.hpp"
-#include "../include/utils.hpp"
+#include "utils.hpp"
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
@@ -14,28 +14,15 @@
 #include "spng.h"
 #include <GL/gl.h>
 #include "rlclay.h"
+#include "globals.hpp"
 
 list<Texture> spritesheets;
 list<TexInfo> texs;
 list<Board> boards;
 Clay_TextElementConfig font;
-Texture btns[5];
+extern "C"
+{ Texture btns[5]; }
 FILE* source_cobz;
-#ifdef DEBUG
-#include <dlfcn.h>
-void(*layout_home)(Clay_RenderCommandArray& array);
-void(*layout_options)(Clay_RenderCommandArray& array);
-void load_layouts()
-{
-  void* h = dlopen("cxml/ui.so", RTLD_LAZY);
-  assert(h != 0);
-  layout_home = decltype(layout_home)(dlsym(h, "layout_home"));
-  layout_options = decltype(layout_options)(dlsym(h, "layout_options"));
-  assert(layout_home != 0);
-  assert(layout_options != 0);
-  dlclose(h);
-}
-#endif
 
 Ref<list<FixedString>> current_actions;
 
@@ -170,7 +157,7 @@ int init_res(Ref<Stream> s)
 
   current_actions.init();
 
-  // NOTE: Font is loaded with init_theme
+  // NOTE: Font is loaded with init_settings
   theme::text_space_width = MeasureTextEx(
     theme::fonts[0],
     " ",
@@ -178,11 +165,11 @@ int init_res(Ref<Stream> s)
     theme::TEXT_SPACING
   ).x;
 
-  btns[BTI_OPT] = LoadTexture("res/opt.png");
-  btns[BTI_BACKSPACE] = LoadTexture("res/kb.png");
-  btns[BTI_CLEAR] = LoadTexture("res/cl.png");
-  btns[BTI_PLAY] = LoadTexture("res/pa.png");
-  btns[BTI_UP] = LoadTexture("res/au.png");
+  btns[BTI_OPT] = LoadTexture("assets/opt.png");
+  btns[BTI_BACKSPACE] = LoadTexture("assets/kb.png");
+  btns[BTI_CLEAR] = LoadTexture("assets/cl.png");
+  btns[BTI_PLAY] = LoadTexture("assets/pa.png");
+  btns[BTI_UP] = LoadTexture("assets/au.png");
   
   texs.init();
   boards.init();
@@ -198,19 +185,21 @@ int init_res(Ref<Stream> s)
 
   // Rectangles
   s >> (isize&) tex_count;
+  s >> (isize&) board_count;
   texs.prealloc(tex_count);
   fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
   texs.set_len(tex_count);
   // Spritesheets
   const float LOADING_W = 0.1f * XMAX;
   const float LOADING_H = 0.05f * YMAX;
-  s >> (isize&) tex_count;
-  spritesheets.prealloc(tex_count);
-  for (isize i = 0; i < tex_count; i++)
+  assert(board_count != 0);
+  spritesheets.prealloc(board_count);
+  for (isize i = 0; i < board_count; i++)
   {
     if (WindowShouldClose())
       return EXIT_FAILURE;
     BeginDrawing();
+      ClearBackground(CLAY_COLOR_TO_RAYLIB_COLOR(theme::background_color));
       DrawRectangleLinesEx(
         {
           XMAX/2.f - LOADING_W/2.f, YMAX/2.f - LOADING_H/2.f,
@@ -222,7 +211,7 @@ int init_res(Ref<Stream> s)
       DrawRectangleRec(
         {
           XMAX/2.f - LOADING_W/2.f, YMAX/2.f - LOADING_H/2.f,
-          LOADING_W*float(i)/tex_count, LOADING_H
+          LOADING_W*float(i)/board_count, LOADING_H
         },
         SKYBLUE
       );
@@ -230,8 +219,6 @@ int init_res(Ref<Stream> s)
       TextureDumpLoad(spritesheets[-1], s);
     EndDrawing();
   }
-  spritesheets.set_len(tex_count);
-    
   return EXIT_SUCCESS;
 }
 

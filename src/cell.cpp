@@ -6,6 +6,7 @@
 // #define CLAY__MIN(x, y) ((x < y) ? (x) : (y))
 // #define CLAY__MAX(x, y) ((x > y) ? (x) : (y))
 #include "rlclay.h"
+#include "globals.hpp"
 #include <raylib.h>
 
 void Cell::destroy()
@@ -137,7 +138,7 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
       if (actions[0]._data[0] == '+')
       {
         tts_push(actions[0]);
-        current_actions.assign(actions);
+        current_actions.ref(actions);
       }
       else
         TraceLog(LOG_WARNING, "Non + actions aren't supported yet.");
