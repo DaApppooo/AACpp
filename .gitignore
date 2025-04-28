@@ -17,3 +17,4 @@ obz2cobz/stb*
 compile_commands.json
 .cache/*
 assets/obz2cobz
+assets/espeak-ng-data
