@@ -1,6 +1,7 @@
 #include "resman.hpp"
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 #include <cwchar>
 #include <raylib.h>
 #include <raymath.h>
@@ -10,21 +11,18 @@
 #include "theme.hpp"
 #include "utils.hpp"
 #include "board.hpp"
-#include "proc.hpp"
 #include "tts.hpp"
 #include "settings.hpp"
 #include "globals.hpp"
 
-inline float throbber_func(float x)
-{
-  static constexpr float speed = 4.f;
-  return (sinf(speed*x)+1.f)/speed + x;
-}
 inline void board_update(
   Clay_RenderCommandArray& render_cmds,
   opt_board_index_t& opt_new_board,
   board_index_t& current
 );
+
+const char* failure_reason = nullptr;
+void loading_failure_screen();
 
 void clay_error_handler(Clay_ErrorData error_data)
 {
@@ -35,18 +33,14 @@ int main()
 {
   Clay_RenderCommandArray render_cmds;
   Clay_Context* clay_ctx;
-  Stream board_src;
   uint64_t clay_req_mem;
   void* allocated_mem;
-  board_index_t current;
+  board_index_t current = 0;
   opt_board_index_t opt_new_board;
-  const char* temp;
-  Proc child;
-  char* child_param_buffer[5];
   float dt;
 
-
   {
+    InitAudioDevice();
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     SetTargetFPS(15);
     InitWindow(1600, 900, "aacpp");
@@ -55,7 +49,11 @@ int main()
   }
 
   init_tts();
-  settings_load();
+  if ((failure_reason = settings_load()))
+  {
+    loading_failure_screen();
+    return EXIT_FAILURE;
+  }
   assert(theme::fonts != nullptr);
   
   {
@@ -70,103 +68,14 @@ int main()
     Clay_SetCurrentContext(clay_ctx);
   }
 
-  { // board selection and compilation if necessary
-    current = 0;
-    assert(alloc_board() == 0);
-    const char* const unknown_board_path = open_file_dialogue();
-    const char* compiled_board_path;
-    if (IsFileExtension(unknown_board_path, ".cobz"))
-    {
-      compiled_board_path = unknown_board_path;
-    }
-    else if (
-       FileExists(temp=TextFormat("%s.cobz", unknown_board_path))
-    && FileEditTime(unknown_board_path) <= FileEditTime(temp)
-    )
-    {
-      // file was already auto compiled and there's no new version
-      compiled_board_path = temp;
-    }
-    else
-    {
-      child_param_buffer[0] = (char*)"python3";
-      child_param_buffer[1] = (char*)"obz2cobz.py";
-      child_param_buffer[2] = (char*)unknown_board_path;
-      child_param_buffer[3] = (char*)TextFormat("%s.cobz", unknown_board_path);
-      child_param_buffer[4] = nullptr;
-      child.launch(
-        "python3",
-        child_param_buffer
-      );
-      // a whole load ass screen
-      float t = 0;
-      float dt;
-      WaitTime(0.5);
-      while (!child.ended())
-      {
-        if (WindowShouldClose())
-        {
-          child.kill();
-          break;
-        }
-        XMAX = GetScreenWidth();
-        YMAX = GetScreenHeight();
-        BeginDrawing();
-          ClearBackground(
-            CLAY_COLOR_TO_RAYLIB_COLOR(theme::background_color)
-          );
-          const int w = MeasureText(
-            "Compiling board... (done once per board set)",
-            50
-          );
-          DrawText(
-            "Compiling board... (done once per board set)",
-            int(XMAX)/2 - w/2,
-            YMAX/2 - 25,
-            50,
-            CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
-          );
-#define THROBBER(F) \
-          DrawCircleV( \
-            { \
-              XMAX/2.f + cosf(throbber_func(t*(F))*2.f*PI)*20.f, \
-              2.f*YMAX/3.f + sinf(throbber_func(t*(F))*2.f*PI)*20.f \
-            }, \
-            7.5f, \
-            WHITE \
-          )
-        THROBBER(1);
-        THROBBER(0.8);
-        THROBBER(0.6);
-        THROBBER(0.4);
-        EndDrawing();
-        dt = GetFrameTime();
-        t += dt;
-      }
-      // NOTE: we can't use 'temp' because we can't be 100% sure it was set
-      //  because of possible compiler shenanigans.
-      compiled_board_path = TextFormat("%s.cobz", unknown_board_path);
-    }
-
-    board_src = {fopen(compiled_board_path, "rb")};
-    if (board_src._f == nullptr)
-    {
-      TraceLog(LOG_FATAL, "Could not open compiled open board file '%s'.", compiled_board_path);
-      return EXIT_FAILURE;
-    }
-  }
-
   { // board and ressource loading
     load_layouts();
-    if (init_res(board_src))
+    if (init_res(current_board_file))
     {
       return EXIT_FAILURE;
     }
   }
 
-  Rectangle r;
-  r.width = 150.f;
-  r.height = 150.f;
   Clay_Raylib_Initialize(); // Should be the last thing to be initialized
   bool clay_debug = false;
 
@@ -197,7 +106,6 @@ int main()
     {
       clay_debug = !clay_debug;
     }
-  
 
     // NOTE: Raylib provides compatibility with touch screen
     // without use of a different function
@@ -292,5 +200,20 @@ inline void board_update(
   EndDrawing();
 }
 
+void loading_failure_screen()
+{
+  if (failure_reason == nullptr)
+    failure_reason = "Unknown failure reason.";
+  while (!WindowShouldClose())
+  {
+    BeginDrawing();
+      ClearBackground(CLAY_COLOR_TO_RAYLIB_COLOR(theme::background_color));
+      const int w = MeasureText(failure_reason, 50);
+      DrawText(failure_reason, int(XMAX)/2 - w/2, YMAX/2 - 25, 50,
+        CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color));
+    EndDrawing();
+  }
+  CloseWindow();
+}
 
 

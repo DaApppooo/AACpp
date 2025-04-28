@@ -9,6 +9,7 @@
 // A child process creator and manager
 struct Proc
 {
+  int status;
   // search for ex in PATH, pass argv as arguments
   //
   // good old execvp style

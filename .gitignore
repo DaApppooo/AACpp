@@ -16,3 +16,4 @@ obz2cobz/stb*
 .config/*
 compile_commands.json
 .cache/*
+assets/obz2cobz

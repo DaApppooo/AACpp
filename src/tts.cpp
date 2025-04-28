@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include "piper.hpp"
+#include <cstdlib>
 #include <optional>
 #include <raylib.h>
 #include "tts.hpp"
@@ -9,6 +10,7 @@ FixedString::Char tts_msg_builder[TTS_MSG_LEN];
 TTSMode tts_mode;
 char tts_param[TTS_PARAM_MAX+1];
 int tts_pos = 0;
+Sound rlsound;
 
 char tts_msg_final[TTS_MSG_LEN];
 
@@ -22,8 +24,8 @@ char tts_msg_final[TTS_MSG_LEN];
 void init_tts()
 {
   memset(tts_msg_builder, 0, sizeof(FixedString::Char)*2048);
+  setenv("ESPEAK_DATA_PATH", "assets/espeak-ng-data", 1);
   // memset(tts_cli, 0, sizeof(char)*1024);
-  
 }
 void tts_push(FixedString& w)
 {
@@ -63,22 +65,24 @@ void tts_play()
         std::ofstream audio_file;
         std::optional<piper::SpeakerId> spkid;
         piper::SynthesisResult res;
-        Sound rlsound;
         piper::loadVoice(
           config, tts_param, std::string(tts_param)+".json",
           voice, spkid, false
         );
-        // if (voice.phonemizeConfig.eSpeakConfig)
-        if (voice.phonemizeConfig.phonemeType == piper::eSpeakPhonemes) {
-          TraceLog(LOG_ERROR, "Voice uses eSpeak phonemes which isn't supported yet.");
-          return;
+        if (voice.phonemizeConfig.phonemeType == piper::eSpeakPhonemes)
+        {
+          config.eSpeakDataPath = "assets/espeak-ng-data";
+          config.useESpeak = true;
         }
-        config.useESpeak = false;
+        else
+          config.useESpeak = false;
         if (voice.phonemizeConfig.eSpeak.voice == "ar")
         {
           TraceLog(LOG_ERROR, "Arabic (with tashkeel) is not yet supported.");
           return;
         }
+        config.useTashkeel = false;
+        printf("config.eSpeakDataPath='%s'\n", config.eSpeakDataPath.c_str());
         piper::initialize(config);
         audio_file.open("assets/tmp.wav", std::ios::binary);
         piper::textToWavFile(config, voice, tts_msg_final, audio_file, res);
@@ -88,7 +92,6 @@ void tts_play()
         if (rlsound.frameCount == 0)
           return;
         PlaySound(rlsound);
-        UnloadSound(rlsound);
         piper::terminate(config);
         break;
       }
@@ -117,6 +120,14 @@ const char* tts_fill_final_buffer()
     }
   }
   tts_msg_final[bi] = 0;
+  // because this function is equivalent to a tts update, we manage rlsound
+  // here
+  if (IsSoundValid(rlsound) && !IsSoundPlaying(rlsound))
+  {
+    UnloadSound(rlsound);
+    rlsound.frameCount = 0;
+    rlsound.stream.buffer = nullptr;
+  }
   return (const char*)tts_msg_final;
 }
 void destroy_tts() {}

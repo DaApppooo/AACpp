@@ -8,6 +8,7 @@ require("src/shared/shared")
 load_os()
 RAYLIB_VERSION = "5.5"
 CLAY_VERSION = "0.13"
+WAYLAND = "yes"
 TEMP_FOLDERS = { "raylib", "nfd", "nativefiledialog", "libspng", "iniparser" }
 parse_args()
 
@@ -57,16 +58,19 @@ function inst_libspng()
 end
 function inst_raylib()
   print("Download and install raylib (for app only)...")
+  if exists("raylib/") then
+    rm("raylib/")
+  end
+  shell("git clone https://github.com/LibreAAC/raylib.git")
   if TARGET == "LINUX" then
-    shell("wget https://github.com/raysan5/raylib/releases/download/" .. RAYLIB_VERSION .. "/raylib-" .. RAYLIB_VERSION .. "_linux_amd64.tar.gz")
-    shell("tar -xvzf raylib-" .. RAYLIB_VERSION .. "_linux_amd64.tar.gz")
-    mv("raylib-" .. RAYLIB_VERSION .. "_linux_amd64/lib/libraylib.so*", "lib/")
-    mv("raylib-" .. RAYLIB_VERSION .. "_linux_amd64/include/*", "include/")
-    rm("raylib-" .. RAYLIB_VERSION .. "_linux_amd64.tar.gz")
-    rm("-r raylib-" .. RAYLIB_VERSION .. "_linux_amd64")
+    shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
+    mv("raylib/src/libraylib.so*", "lib/")
+    mv("raylib/src/raylib.h", "include/")
+    mv("raylib/src/raymath.h", "include/")
   else
     todo()
   end
+  rm("raylib/")
 end
 function inst_iniparser()
   print("Download, compile and move iniParser 4...")
@@ -94,6 +98,7 @@ function inst_piper()
     shell("wget https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz")
     shell("mkdir -p libpiper/lib/Linux-$(uname -m)/")
     shell("tar -xzvf piper-phonemize_linux_$(uname -m).tar.gz")
+    mv("piper_phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
     mv("piper_phonemize", "libpiper/lib/Linux-$(uname -m)/")
     shell("cd libpiper && make all")
     if not exists("include/piper") then
@@ -106,10 +111,10 @@ function inst_piper()
     mv("libpiper/install/libpiper_phonemize.so*", "lib/")
     mv("libpiper/install/libonnxruntime.so*", "lib/")
     mv("libpiper/install/libespeak-ng.so*", "lib/")
+    mv("libpiper/install/espeak-ng-data", "assets/")
     mv("libpiper/build/pi/include/onnxruntime_c_api.h", "include/piper/")
     mv("libpiper/build/pi/include/onnxruntime_cxx_api.h", "include/piper/")
     mv("libpiper/build/pi/include/onnxruntime_cxx_inline.h", "include/piper/")
-    -- mv("libpiper/install/espeak-ng-data/", "assets/") -- enable espeak phonemes
     if not exists("include/piper/espeak-ng/") then
       shell("mkdir include/piper/espeak-ng/")
     end
@@ -126,6 +131,21 @@ function inst_piper()
   else
     todo()
   end
+end
+function inst_obz2cobz()
+  print("Downloading, compiling and moving obz2cobz...")
+  if exists("obz2cobz") then
+    rm("obz2cobz")
+  end
+  if not exists("lib/obz2cobz") then
+    shell("mkdir lib/obz2cobz")
+  end
+  shell("git clone --recursive https://github.com/LibreAAC/obz2cobz.git")
+  shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
+  shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
+  mv("obz2cobz/bin/obz2cobz*", "assets/")
+  mv("obz2cobz/lib/*", "lib/obz2cobz/")
+  rm("obz2cobz")
 end
 
 run_install_scripts()

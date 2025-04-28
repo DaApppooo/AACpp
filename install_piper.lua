@@ -1,5 +1,5 @@
 -- A temporary "small" lua script to handle piper installation and setup easily
-require("shared")
+require("src/shared/shared")
 function lcount(s, char)
   local c = 0
   local p = 1
@@ -87,7 +87,7 @@ function extract_addrs(s)
 end
 
 load_os()
-SETTINGS = "config/defaults.ini"
+SETTINGS = "assets/settings.ini"
 MODELS_PATH = "tts"
 PIPER_VERSION = "2023.11.14-2"
 TEMP_FOLDERS = { "piper" }
@@ -98,7 +98,7 @@ if not isdir("licenses") then
   shell("mkdir licenses")
 end
 
-if yesno("Install new voice ? (y/N):", false) then
+if yesno("Install new voice ? (Y/n):", true) then
   if TARGET == "LINUX" then
     shell("wget https://raw.githubusercontent.com/rhasspy/piper/refs/heads/master/VOICES.md --output-document /tmp/piper.md")
     local MD = io.open("/tmp/piper.md", "r")
@@ -124,15 +124,16 @@ if yesno("Install new voice ? (y/N):", false) then
       "Select quality (name or part of name): ",
       "Unknown quality:"
     )
-    print("Selected package:", lang, voice, qual)
+    print("Selected package:"..lang..' '..voice..' '..qual)
     local res = T[ilang]["children"][ivoice]["children"][iqual]["value"]
-    local filename = MODELS_PATH .. '/' .. lang .. "-" .. voice .. "-" .. qual
+    local filename =
+      MODELS_PATH .. '/' .. ilang .. "-" .. ivoice .. "-" .. iqual
     local onnx, jason = extract_addrs(res)
     print(onnx)
     print(jason)
     shell("wget " .. onnx .. " --output-document " .. filename .. ".onnx")
     shell("wget " .. jason .. " --output-document " .. filename .. ".onnx.json")
-    TTS_PARAMS = "-m "..filename..".onnx -c "..filename..".onnx.json"
+    TTS_PARAMS = filename..".onnx"
   elseif TARGET == "WIN" then
     todo()
   end
@@ -140,7 +141,7 @@ else
   TTS_PARAMS = ""
 end
 
-if yesno("Install (or reinstall) piper binary ? (Y/n):", true) then
+if yesno("Install (or reinstall) piper binary ? (y/N):", false) then
   if TARGET == "LINUX" then
     print("For linux there are 3 binaries depending on your architecture:")
     OPTIONS = { {value="x86_64"}, {value="armv7l"}, {value="aarch64"} }
@@ -162,9 +163,9 @@ print("Changing config to use piper and use downloaded voice.")
 local f = io.open(SETTINGS, "r")
 local new_config = ""
 for l in f:lines() do
-  if startswith(l, "mode=") then
+  if l:startswith("mode=") then
     new_config = new_config .. "mode=piper\n"
-  elseif startswith(l, "param=") then
+  elseif l:startswith("param=") then
     new_config = new_config .. "param="..TTS_PARAMS.."\n"
   else
     new_config = new_config .. l .. "\n"

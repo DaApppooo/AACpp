@@ -35,19 +35,14 @@ void Proc::kill()
 
 bool Proc::ended()
 {
-  static int zero_count = 0;
   // let the child die when it wants to
-  int status;
-  waitpid(child, &status, WNOHANG);
-  if (status == 0)
+  pid_t rval = waitpid(child, &status, WNOHANG);
+  if (rval == -1)
   {
-    zero_count++;
+    perror("waitpid failed");
+    exit(1);
   }
-  // me when I tried to kill a child
-  // with nothing, because I was riled (sig 0)
-  // just to make sure it stays aware
-  // in the dark the demons do stare:
-  return ::kill(child, 0) == ESRCH && zero_count > 10;
+  return rval != 0;
 }
 
 #endif /* __linux__ */
