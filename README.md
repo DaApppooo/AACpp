@@ -22,18 +22,18 @@ explaining what you want or need.
 
 ## Usage
 
-> [!NOTE]
-> AACpp is currently unusable because obz files cannot be compiled, *for now*,
-> into cobz files. I'm currently rewriting the whole obz2cobz.py script into a
-> portable C++ binary. This might take a bit of time. Also note that between
-> usable versions, some old compiled boards might not work because the current
-> specification for cobz files is very unstable. I'm doing little improvements
-> here and there. Also
+> [!WARNING]
+> Everytime you open a new board, the first loading can be quite long. This is
+> because Libre AAC uses a custom file format optimized for the way it works.
+> This optimization process can take some time, but it's only the first time
+> you open the board. Then a COBZ file should have been created next to it
+> which will be reused in order to avoid recompilation.
+
+### With Board Builder
 
 First step is to create your own board set on
 [Board Builder](https://app.globalsymbols.com/en/). This program supports most
-of Board Builder features, except (for now) border color, background color and
-custom label position.
+of Board Builder features except custom label position.
 
 > [!CAUTION]
 > Make sure the cells/buttons that are linked to another board **have the same
@@ -53,26 +53,103 @@ ready to be used.
 
 In case of any problems, see [Q&A](#qna).
 
+### Without Board Builder
+
+Find a way to export your board under the obz file format. Then select this
+file when launching the app, or go in the settings to change your current board
+for the one your just exported. If the source from which you exported your
+board does not implement fully the obz file format, there might be issues when
+compiling your board.
+
+### Sharing boards
+
+If you've already used a board with Libre AAC and would like to share it with
+someone, instead of sharing the OBZ file, you can directly share the COBZ file
+which should be next to it (the OBZ file must have been opened at least once).
+This should reduce the loading time considerably.
+
 <a name="deps" />
 
 ## Dependencies
 
-> Here I'll write about all the dependencies and the fact that the app comes
-> ready to use with [Piper](https://github.com/rhasspy/piper) (TTS that
-> supports a bunch of different voices in a bunch of different languages).
->
 > Interesting link for additional voices for piper:
 > [https://brycebeattie.com/files/tts/](https://brycebeattie.com/files/tts/)
 
-## What feature of `obz` is supported ?
+To install dependencies, `lua`, `gcc`, `g++`, `make` and `cmake`, and an access
+to internet are necessary.
 
-Ideally, every feature of the `obz` file format + every custom feature Board
+For linux, depending on your distribution, there are other necessary
+development dependencies. See [distros](#distros)
+
+You can easily install dependencies and have every folder setup just as needed
+by running `lua install_deps.lua`. Here is the list of dependencies:
+- [raylib (ZLIB)](https://github.com/raysan5/raylib)
+- [clay (ZLIB)](https://github.com/nicbarker/clay)
+- (Windows & Linux only) [nfd (ZLIB)](https://github.com/mlabbe/nativefiledialog)
+- [libspng (BSDL3.0)](https://github.com/randy408/libspng)
+- [iniparser](https://gitlab.com/iniparser/iniparser)
+- [piper (MIT)](https://github.com/DaApppooo/libpiper)
+  - [piper-phonemize (MIT)](https://github.com/rhasspy/piper-phonemize)
+  - [onnxruntime (MIT)](https://github.com/microsoft/onnxruntime)
+  - [espeak-ng (GPL 3.0+)](https://github.com/espeak-ng/espeak-ng)
+    - (Compatibility layer under the BSD-2-Clause license)
+    - (Android compatibility under the Apache 2.0 license)
+  - [spdlog (MIT dependent on fmt)](https://github.com/gabime/spdlog)
+  - [fmt (custom derived from MIT)](https://github.com/fmtlib/fmt)
+- [obz2cobz (Public Domain)](https://github.com/LibreAAC/obz2cobz)
+  - [CJSON (MIT)](https://github.com/DaveGamble/cJSON)
+  - [stb (image and image_write) (Public Domain or MIT)](https://github.com/nothings/stb)
+  - [zip (MIT)](https://github.com/kuba--/zip)
+  - [plutosvg (MIT)](https://github.com/sammycage/plutosvg)
+
+In case you need to install just one of these dependencies (ignore
+sub-dependencies), you can pass the argument `only=dependency_name` with
+`dependency_name` being the short name of the dependency as given above. (Ex:
+`lua install_deps.lua only=nfd` will only install the `nfd` dependency).
+
+Right now, the app will not be provided with any voice for the TTS utility.
+You can either go on [here](https://github.com/rhasspy/piper/blob/master/VOICES.md)
+and download both the model and the config of one of these, or download a .onnx
+and its .onnx.json associated file from somewhere else, then put them right
+into a folder called `tts`, next to the `bin` folder (if it doesn't exist,
+just create it), and finally select your voice in the settings.
+
+> [!WARNING]
+> Voices which use Tashkeel (Arabic) are not yet supported.
+
+## Building
+
+### Linux, Windows
+
+To build from source, you'll need python 3.12 (or later).
+
+```bash
+python3 bm clean
+python3 bm cxml
+python3 bm production
+```
+
+The `bin` folder should contain the binary/executable. It should be ran with
+the current working directory being the parent directory of `bin`. Both
+`assets` and `lib` should be accessible from that current working directory.
+
+### Android
+
+(TODO)
+
+### IOS
+
+(TODO)
+
+## What features of OBZ are supported ?
+
+Ideally, every feature of the OBZ file format + every custom feature Board
 Builder might offer. Feature requests will mostly help me know on which feature
 I should work in priority. Check out the
 [todo](https://github.com/users/DaApppooo/projects/1) to see how the project is
 going, and what you can contribute to if you want to.
 
-<a name="qna">
+<a name="qna" />
 
 ## Q&A
 
@@ -83,3 +160,34 @@ going, and what you can contribute to if you want to.
 - Please take the time to write an
   [issue](https://github.com/DaApppooo/AACpp/issues/new?assignees=DaApppooo&labels=&projects=&template=bug--or-problem-with-default-behavior-in-general--report.md&title=)
 
+
+<a name="distros" />
+
+## Distros
+
+### Debian based (Linux Mint, Ubuntu, etc...)
+
+To install needed dependencies and run the build script, just run:
+```bash
+# Dependencies installation:
+sudo apt install build-essential git lua5.4
+sudo apt install libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+sudo apt install libgtk-3-dev libgtk2.0-dev
+# Build script:
+sudo apt install python3
+python3 --version
+# ENSURE THAT THE OUTPUT OF THE PREVIOUS COMMAND SHOWS python 3.12 (or 3.13, 3.14 etc...)
+```
+
+### Arch
+
+```bash
+# Dependencies installation:
+sudo pacman -Sy base-devel git
+sudo pacman -S alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
+sudo pacman -S gtk2 gtk3
+# Build script:
+sudo pacman -S python
+python3 --version
+# ENSURE THAT THE OUTPUT OF THE PREVIOUS COMMAND SHOWS python 3.12 (or 3.13, 3.14 etc...)
+```
