@@ -68,14 +68,6 @@ int main()
     Clay_SetCurrentContext(clay_ctx);
   }
 
-  { // board and ressource loading
-    load_layouts();
-    if (init_res(current_board_file))
-    {
-      return EXIT_FAILURE;
-    }
-  }
-
   Clay_Raylib_Initialize(); // Should be the last thing to be initialized
   bool clay_debug = false;
 
@@ -99,7 +91,6 @@ int main()
 
     if (IsKeyPressed(KEY_R))
     {
-      load_layouts();
       TraceLog(LOG_INFO, "Reloaded layouts !");
     }
     if (IsKeyPressed(KEY_D))
@@ -116,35 +107,6 @@ int main()
     if (is_board_index(opt_new_board))
     {
       current = opt_new_board;
-    }
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-    {
-      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_parent"))))
-      {
-        if (is_board_index(board_with_index(current).parent))
-        {
-          current = board_with_index(current).parent;
-          current_actions.init();
-        }
-      }
-      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_options"))))
-      {
-        settings_show();
-      }
-      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_backspace"))))
-      {
-        current_actions.init();
-        tts_backspace();
-      }
-      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_clear"))))
-      {
-        current_actions.init();
-        tts_clear();
-      }
-      if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("btn_play"))))
-      {
-        tts_play();
-      }
     }
   }
 
@@ -198,6 +160,37 @@ inline void board_update(
       CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
     );
   EndDrawing();
+
+  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+  {
+    if (Clay_PointerOver(CLAY_ID("btn_parent")))
+    {
+      if (is_board_index(board_with_index(current).parent))
+      {
+        current = board_with_index(current).parent;
+        current_actions.init();
+      }
+    }
+    if (Clay_PointerOver(CLAY_ID("btn_options")))
+    {
+      settings_scroll = 0.f;
+      settings_show();
+    }
+    if (Clay_PointerOver(CLAY_ID("btn_backspace")))
+    {
+      current_actions.init();
+      tts_backspace();
+    }
+    if (Clay_PointerOver(CLAY_ID("btn_clear")))
+    {
+      current_actions.init();
+      tts_clear();
+    }
+    if (Clay_PointerOver(CLAY_ID("btn_play")))
+    {
+      tts_play();
+    }
+  }
 }
 
 void loading_failure_screen()

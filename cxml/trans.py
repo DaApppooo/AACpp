@@ -130,6 +130,7 @@ class ClayBox:
     field.alias('z', 'floating.zIndex')
 
     field.func('id', "CLAY_ID(\"{}\")")
+    field.func('idi', lambda x: "CLAY_IDI(\"{}\",{})".format(x.split(',',1)))
     CHILD_ALIGNEMENTS = {
       'center': 'CLAY_ALIGN_{}_CENTER',
       'top': 'CLAY_ALIGN_{}_TOP',

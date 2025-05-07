@@ -16,7 +16,6 @@ extern "C" {
 void layout_home(Clay_RenderCommandArray& array);
 void layout_options(Clay_RenderCommandArray& array);
 }
-inline void load_layouts() {}
 
 struct TexInfo
 {
@@ -60,9 +59,9 @@ inline bool is_board_index(opt_board_index_t obi)
   return obi >= 0;
 }
 
-
-
-int init_res(Stream s);
-
+void init_res();
+int res_load_boardset(Stream s);
+void reset_res();
 void destroy_res();
+
 #endif

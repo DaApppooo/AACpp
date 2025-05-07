@@ -146,9 +146,20 @@ extern
                               Clay_TextElementConfig *config
                             );
 
+void init_res()
+{
+  spritesheets.init();
+  spritesheets.init();
+  texs.init();
+  boards.init();
+  source_cobz = nullptr;
+}
+void reset_res()
+{
+  
+}
 
-
-int init_res(Ref<Stream> s)
+int res_load_boardset(Ref<Stream> s)
 {
   assert(sizeof(isize)==8);
   isize board_count, tex_count;
@@ -222,6 +233,7 @@ int init_res(Ref<Stream> s)
   return EXIT_SUCCESS;
 }
 
+
 void destroy_res()
 {
   UnloadFont(theme::fonts[0]);
@@ -229,6 +241,10 @@ void destroy_res()
   for (isize i = 0; i < l; i++)
   {
     UnloadTexture(spritesheets[i]);
+  }
+  if (source_cobz)
+  {
+    fclose(source_cobz);
   }
   spritesheets.destroy();
   texs.destroy();

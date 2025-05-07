@@ -1,5 +1,4 @@
 #include "globals.hpp"
-Stream current_board_file;
 float XMAX, YMAX;
 namespace ctrl
 {

@@ -1,6 +1,7 @@
 #define NO_CLAY
 #include "clay.h"
 #include "theme.hpp"
+#include "settings.hpp"
 #include "resman.hpp"
 
 extern "C" {

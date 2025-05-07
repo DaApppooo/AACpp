@@ -15,9 +15,11 @@ struct PickAndLoadResult
   const char* path;
   Stream f;
 };
+extern float settings_scroll;
 const char* settings_load();
 void settings_save();
-PickAndLoadResult settings_pick_and_load_board();
+const char* settings_try_pick_and_load_board();
+PickAndLoadResult settings_try_once_pick_board();
 
 /* Options GUI. */
 extern bool settings_open; // could be made float for animations
