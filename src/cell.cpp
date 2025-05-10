@@ -127,13 +127,13 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
     return INVALID_BOARD_INDEX;
   if (is_folder())
   {
-    if (ctrl::touch_press && inbounds)
+    if (ctrl::clicked() && inbounds)
     {
       current_actions.init();
       return child;
     }
   } else {
-    if (ctrl::touch_press && inbounds)
+    if (ctrl::clicked() && inbounds)
     {
       if (actions[0]._data[0] == '+')
       {
@@ -149,7 +149,7 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
 
 void Cell::to_folder(board_index_t current_board)
 {
-  child = alloc_board();
+  todo();
 }
 
 void Cell::serialize(Stream f)

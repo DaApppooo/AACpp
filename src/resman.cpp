@@ -122,12 +122,6 @@ error:
   TraceLog(LOG_ERROR, "Failed to load image.");
 }
 
-board_index_t alloc_board()
-{
-  boards.push(Board{});
-  return boards.len()-1;
-}
-
 opt_board_index_t board_index_from_pointer(const Board* const b)
 {
   if (b < boards.data() || b >= boards.data() + boards.len())
@@ -149,14 +143,19 @@ extern
 void init_res()
 {
   spritesheets.init();
-  spritesheets.init();
   texs.init();
   boards.init();
   source_cobz = nullptr;
 }
 void reset_res()
 {
-  
+  for (int i = 0; i < spritesheets.len(); i++)
+  {
+    UnloadTexture(spritesheets[i]);
+  }
+  spritesheets.clear();
+  texs.clear();
+  boards.clear();
 }
 
 int res_load_boardset(Ref<Stream> s)

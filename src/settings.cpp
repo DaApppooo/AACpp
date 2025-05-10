@@ -4,6 +4,7 @@
 #include "resman.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include <cstring>
 extern "C"
 {
 #include "../include/iniparser.h"
@@ -20,7 +21,7 @@ extern "C"
   I use "option" to talk about individual parameters, while I use "settings" to
   talk about the menu.
 */
-
+const char* DEFAULT_FONT = "assets/ShantellSans.ttf";
 Font font_array[1];
 struct Option;
 enum OptionId
@@ -53,60 +54,100 @@ struct Option
   Rectangle(*popup)(Option& self) = nullptr; 
   union {
     char path[1024];
-    Color* color;
+    Clay_Color* color;
     uint16_t* size;
     float* width;
     float* weight;
   };
 };
+Rectangle find_valid_rect(float w, float h)
+{
+  Rectangle out = {popup_position.x, popup_position.y, w, h};
+  if (out.x+w > XMAX)
+    out.x -= w;
+  if (out.y+h > YMAX)
+    out.y -= h;
+  return out;
+}
 namespace current_board
 {
   void init(Option& self)
   {
-    while (settings_try_pick_and_load_board() && !WindowShouldClose());
+    settings_try_pick_and_load_board();
   }
   void mainbox(Option& self, Rectangle box)
-  {}
+  {
+    DrawTextEx(
+      font_array[0],
+      "Load new board",
+      {box.x+theme::gpad, box.y+box.height/2.f-theme::font_size},
+      theme::font_size, theme::TEXT_SPACING,
+      ~theme::text_color
+    );
+    draw_text_anchored(
+      font_array[0],
+      self.path,
+      {1.f, 1.f},
+      {box.x+box.width, box.y+box.height},
+      theme::font_size/2.f,
+      theme::TEXT_SPACING,
+      fade((~theme::text_color), 0.5f)
+    );
+  }
 }
 namespace default_board
 {
   void init(Option& self)
   {
-    PickAndLoadResult res = settings_try_once_pick_board();
+    PickAndLoadResult res = settings_try_once_pick_board(false);
     const char* mod = nullptr;
-    FILE* temp = current_board_file._f;
-    if (res.error != PickAndLoadResult::OK)
+    switch (res.error)
     {
-      switch (res.error)
-      {
-        case PickAndLoadResult::COMPILATION_ERROR:
-          TraceLog(LOG_ERROR, "Failed to compile board (should not happen in this state).");
-          break;
-        case PickAndLoadResult::CANNOT_OPEN_FILE:
-          TraceLog(LOG_ERROR, "Cannot open file.");
-          break;
-        case PickAndLoadResult::WRONG_FILE_FORMAT:
-          TraceLog(LOG_ERROR, "Wrong file format. Expected '.obz' or '.cobz'.");
-          break;
-        case PickAndLoadResult::OK:
-          mod = res.path;
-          break;
-      }
+      case PickAndLoadResult::COMPILATION_ERROR:
+        TraceLog(LOG_ERROR, "Failed to compile board (should not happen in this state).");
+        break;
+      case PickAndLoadResult::CANNOT_OPEN_FILE:
+        TraceLog(LOG_ERROR, "Cannot open file.");
+        break;
+      case PickAndLoadResult::WRONG_FILE_FORMAT:
+        TraceLog(LOG_ERROR, "Wrong file format. Expected '.obz' or '.cobz'.");
+        break;
+      case PickAndLoadResult::OK:
+        mod = res.path;
+        break;
     }
-    fclose(current_board_file._f);
-    current_board_file = {temp};
     if (mod)
       strncpy(self.path, mod, 1024);
     current_options = -1;
   }
   void mainbox(Option& self, Rectangle box)
-  {}
+  {
+    DrawTextEx(
+      font_array[0],
+      "Change default board (loaded at startup)",
+      {box.x+theme::gpad, box.y+box.height/2.f-theme::font_size},
+      theme::font_size, theme::TEXT_SPACING,
+      ~theme::text_color
+    );
+    draw_text_anchored(
+      font_array[0],
+      self.path,
+      {1.f, 1.f},
+      {box.x+box.width, box.y+box.height},
+      theme::font_size/2.f,
+      theme::TEXT_SPACING,
+      fade((~theme::text_color), 0.5f)
+    );
+  }
 }
 namespace font_picking
 {
-  list<char*> available_font_names;
+  list<char*> available_font_paths;
+  list<Font> available_fonts;
+  float scroll;
   void init(Option&)
   {
+    scroll = 0.f;
     char* search_dirs;
   #ifdef __linux__
     char* xdg_data_dirs = getenv("XDG_DATA_DIRS");
@@ -118,9 +159,25 @@ namespace font_picking
   #else
   # error init_font_picking for windows, android, ios: TODO
   #endif
+    { // First load packaged font
+      FilePathList fpl = LoadDirectoryFilesEx(
+        "assets",
+        "ttf", true
+      );
+      available_font_paths.extend({
+        .start = fpl.paths,
+        .len = fpl.count,
+        .full = fpl.count
+      });
+      for (int i = 0; i < fpl.count; i++)
+        fpl.paths[i] = 0; // disown strings
+      UnloadDirectoryFiles(fpl);
+    }
+
+    // Then load system fonts
     char* start = search_dirs;
     char* end = search_dirs;
-    available_font_names.init();
+    available_font_paths.init();
     while (start != nullptr)
     {
       while (*end != ':' && *end != 0)
@@ -131,7 +188,7 @@ namespace font_picking
         TextFormat("%s/fonts",start),
         "ttf", true
       );
-      available_font_names.extend({
+      available_font_paths.extend({
         .start = fpl.paths,
         .len = fpl.count,
         .full = fpl.count
@@ -144,7 +201,7 @@ namespace font_picking
   }
   void destroy(Option&)
   {
-    available_font_names.destroy();
+    available_font_paths.destroy();
   }
   void mainbox(Option& self, Rectangle box)
   {
@@ -158,7 +215,7 @@ namespace font_picking
   }
   Rectangle popup(Option& self)
   {
-    return {0.f,0.f,0.f,0.f};
+    const Rectangle r = find_valid_rect(float w, float h)
   }
 }
 
@@ -200,10 +257,15 @@ if (p == nullptr) { \
 } \
 else
 
+void set_default_board(const char* path)
+{
+  strncpy(options[OPT_DEFAULT_BOARD].path, path, 1024);
+}
+
 const char* settings_load()
 {
   const char* p = nullptr;
-  font_picking::available_font_names.init();
+  font_picking::available_font_paths.init();
   dictionary* cf = iniparser_load("assets/settings.ini");
   if (cf == nullptr)
   {
@@ -213,7 +275,10 @@ const char* settings_load()
   }
   theme::fonts = font_array;
   LDPWARN("global:background")
+  {
     theme::background_color = ~ color_parse_or(p, {53, 53, 53, 255});
+    // options[OPT_BG_COLOR].color = &theme::background_color;
+  }
   LDPWARN("global:text_field_background")
     theme::text_field_bg_color = ~ color_parse_or(p, {117, 117, 117, 255});
   LDPWARN("global:padding")
@@ -228,18 +293,26 @@ const char* settings_load()
     theme::command_background = ~ color_parse_or(p, {100, 110, 255, 255});
   LDPWARN("global:font_face")
   {
+    const char* path = nullptr;
     if (isspace(*p) || *p == 0)
-      font_array[0] = LoadFontEx("assets/font.ttf", theme::font_size, 0, 0);
+    {
+      path = DEFAULT_FONT;
+      font_array[0] = LoadFontEx(path, theme::font_size, 0, 0);
+    }
     else
     {
       font_array[0] = LoadFontEx(p, theme::font_size, 0, 0);
       if (font_array[0].texture.id == 0)
       {
         TraceLog(LOG_INFO, "Loading packaged font instead of specified font because of a failure.");
-        font_array[0] = LoadFontEx("assets/font.ttf", theme::font_size, 0, 0);
+        path = DEFAULT_FONT;
+        font_array[0] = LoadFontEx(path, theme::font_size, 0, 0);
         assert(font_array[0].texture.id != 0);
       }
+      else
+        path = p;
     }
+    strncpy(options[OPT_FONT].path, path, 1024);
   }
   tts_mode = TTS_PIPER; // default
   LDPWARN("tts:mode")
@@ -259,10 +332,11 @@ const char* settings_load()
   { // default board
     p = iniparser_getstring(cf, "global:default_board", nullptr);
     if (p)
-      current_board_file = {fopen(p, "rb")};
-    if (p == nullptr || current_board_file._f == nullptr)
+      source_cobz = fopen(p, "rb");
+    if (p == nullptr || source_cobz == nullptr)
     {
       settings_try_pick_and_load_board();
+      set_default_board(options[OPT_CURRENT_BOARD].path);
     }
   }
 
@@ -272,9 +346,25 @@ const char* settings_load()
 
 void settings_save()
 {
-  todo();
-}
+  dictionary* cf = iniparser_load("assets/settings.ini");
 
+  if (cf == nullptr)
+  {
+    const char* E = "Failed to load settings file !";
+    TraceLog(LOG_ERROR, E);
+    return;
+  }
+
+  iniparser_set(cf, "global:default_board", options[OPT_DEFAULT_BOARD].path);
+  // iniparser_set(cf, "global:background", fmt(*options[OPT_BG_COLOR].color));
+  
+  iniparser_set(cf, "global:font_face", options[OPT_FONT].path);
+
+  FILE* f = fopen("assets/settings.ini", "w");
+  iniparser_dump(cf, f);
+  fclose(f);
+  iniparser_freedict(cf);
+}
 
 constexpr inline float max(float a, float b)
 {
@@ -287,21 +377,31 @@ void settings_update(Clay_RenderCommandArray& render_cmds)
 {
   constexpr float MAX_WIDTH = 800.f;
   const float OPT_H = 50.f + theme::font_size;
+  const Rectangle back_btn_rec =
+    {float(theme::gpad), 0.f, theme::BAR_HEIGHT, theme::BAR_HEIGHT};
+  Rectangle popup_rect = {0.f, 0.f, 0.f, 0.f};
   BeginDrawing();
   {
+    ClearBackground(~theme::background_color);
     for (int i = 0; i < OPT_COUNT; i++)
     {
       const Rectangle rec = {
         max(XMAX/2.f - MAX_WIDTH/2.f, 0.f),
-        i*OPT_H - settings_scroll,
+        i*OPT_H - settings_scroll + theme::BAR_HEIGHT,
         MAX_WIDTH > XMAX ? XMAX : MAX_WIDTH,
         OPT_H
       };
-      DrawRectangleLinesEx(rec, theme::border_weight, ~theme::text_color);
+      DrawLineEx(
+        {rec.x,rec.y+rec.height},
+        {rec.x+rec.width,rec.y+rec.height},
+        theme::border_weight,
+        fade((~theme::text_color), 0.5f)
+      );
+      // DrawRectangleLinesEx(rec, theme::border_weight, ~theme::text_color);
       if (options[i].mainbox)
         options[i].mainbox(options[i], rec);
       if (current_options == -1
-          && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)
+          && ctrl::clicked()
           && CheckCollisionPointRec(ctrl::mpos, rec)
       ) {
         if (options[i].init)
@@ -311,29 +411,44 @@ void settings_update(Clay_RenderCommandArray& render_cmds)
         }
       }
     }
-    DrawRectangleRec({0.f, 0.f, XMAX, theme::BAR_HEIGHT},
-                     ~theme::command_background);
-    DrawTexturePro(
-      btns[BTI_BACKSPACE],
-      {0.f, 0.f, theme::IMG_SCALE.width, theme::IMG_SCALE.height},
-      {float(theme::gpad), 0.f, theme::BAR_HEIGHT, theme::BAR_HEIGHT},
-      {0.f, 0.f},
-      0.f,
-      WHITE
-    );
+    { // top bar
+      DrawRectangleRec({0.f, 0.f, XMAX, theme::BAR_HEIGHT},
+                       ~theme::command_background);
+      DrawTexturePro(
+        btns[BTI_BACKSPACE],
+        {0.f, 0.f, theme::IMG_SCALE.width, theme::IMG_SCALE.height},
+        back_btn_rec,
+        {0.f, 0.f},
+        0.f,
+        WHITE
+      );
+      if (CheckCollisionPointRec(ctrl::mpos, back_btn_rec) && ctrl::clicked())
+      {
+        settings_open = false;
+        SetTargetFPS(BOARD_FPS);
+        ctrl::clear_input();
+      }
+    }
     if (current_options != -1 && options[current_options].popup != nullptr)
     {
-      const Rectangle popup_rect =
+      popup_rect =
         options[current_options].popup(options[current_options]);
-      if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)
-          && !CheckCollisionPointRec(ctrl::mpos, popup_rect))
-      {
+      if (ctrl::clicked()
+          && !CheckCollisionPointRec(ctrl::mpos, popup_rect)
+      ) {
         options[current_options].destroy(options[current_options]);
         current_options = -1;
       }
     }
   }
   EndDrawing();
+  if (!hover(popup_rect))
+  {
+    settings_scroll += ctrl::delta_scroll();
+    settings_scroll = Clamp(
+      settings_scroll, 0.f, OPT_H*(float(OPT_COUNT)-1.f)
+    );
+  }
 }
 
 void destroy_settings()
@@ -349,12 +464,12 @@ inline float throbber_func(float x)
 const char* settings_try_pick_and_load_board()
 {
   PickAndLoadResult res;
-  res = settings_try_once_pick_board();
+  res = settings_try_once_pick_board(true);
   while (res.error != PickAndLoadResult::OK && !WindowShouldClose())
   {
     while (!WindowShouldClose())
     {
-      if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+      if (ctrl::clicked())
         break;
       BeginDrawing();
         ClearBackground(~theme::background_color);
@@ -388,19 +503,20 @@ const char* settings_try_pick_and_load_board()
         );
       EndDrawing();
     }
-    res = settings_try_once_pick_board();
+    res = settings_try_once_pick_board(true);
   }
-  current_board_file = res.f;
+  source_cobz = res.f._f;
   reset_res();
   current_options = -1;
-  if (res_load_boardset({current_board_file}))
+  if (res_load_boardset({source_cobz}))
   {
     return "Failed to load board.";
   }
+  strncpy(options[OPT_CURRENT_BOARD].path, res.path, 1024);
   return nullptr;
 }
 
-PickAndLoadResult settings_try_once_pick_board()
+PickAndLoadResult settings_try_once_pick_board(bool clear)
 {
   const char* temp;
   char* child_param_buffer[4];
@@ -408,8 +524,6 @@ PickAndLoadResult settings_try_once_pick_board()
   Proc child;
 
   extern list<Board> boards;
-  boards.clear();
-  alloc_board();
 
   const char* const unknown_board_path = open_file_dialogue();
   if (!(

@@ -14,6 +14,7 @@
 #include "tts.hpp"
 #include "settings.hpp"
 #include "globals.hpp"
+#include "logging.hpp"
 
 inline void board_update(
   Clay_RenderCommandArray& render_cmds,
@@ -37,18 +38,18 @@ int main()
   void* allocated_mem;
   board_index_t current = 0;
   opt_board_index_t opt_new_board;
-  float dt;
 
   {
     InitAudioDevice();
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
-    SetTargetFPS(15);
+    SetTargetFPS(BOARD_FPS);
     InitWindow(1600, 900, "aacpp");
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
   }
 
   init_tts();
+  init_logging();
   if ((failure_reason = settings_load()))
   {
     loading_failure_screen();
@@ -73,41 +74,25 @@ int main()
 
   while (!WindowShouldClose())
   {
+    XMAX = GetScreenWidth();
+    YMAX = GetScreenHeight();
     dt = GetFrameTime();
     Vector2 mwm = GetMouseWheelMoveV();
     Clay_SetLayoutDimensions({XMAX, YMAX});
-    Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::touch_press);
+    Clay_SetPointerState({ctrl::mpos.x, ctrl::mpos.y}, ctrl::clicked());
     Clay_UpdateScrollContainers(true, {mwm.x, mwm.y}, dt);
 
     if (settings_open)
-    {
       settings_update(render_cmds);
-    }
     else
-    {
       board_update(render_cmds, opt_new_board, current);
-    }
     Clay_SetDebugModeEnabled(clay_debug);
 
-    if (IsKeyPressed(KEY_R))
-    {
-      TraceLog(LOG_INFO, "Reloaded layouts !");
-    }
     if (IsKeyPressed(KEY_D))
     {
       clay_debug = !clay_debug;
     }
-
-    // NOTE: Raylib provides compatibility with touch screen
-    // without use of a different function
-    ctrl::touch_press = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
-    ctrl::mpos = GetMousePosition();
-    XMAX = GetScreenWidth();
-    YMAX = GetScreenHeight();
-    if (is_board_index(opt_new_board))
-    {
-      current = opt_new_board;
-    }
+    ctrl::update();
   }
 
 SAFELY_EXIT:
@@ -118,6 +103,7 @@ SAFELY_EXIT:
   destroy_settings();
   destroy_res();
   destroy_tts();
+  destroy_logging();
   CloseWindow();
   
   return 0;
@@ -159,9 +145,10 @@ inline void board_update(
       theme::TEXT_SPACING,
       CLAY_COLOR_TO_RAYLIB_COLOR(theme::text_color)
     );
+    logging_update();
   EndDrawing();
 
-  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+  if (ctrl::clicked())
   {
     if (Clay_PointerOver(CLAY_ID("btn_parent")))
     {
@@ -174,7 +161,9 @@ inline void board_update(
     if (Clay_PointerOver(CLAY_ID("btn_options")))
     {
       settings_scroll = 0.f;
-      settings_show();
+      settings_open = true;
+      SetTargetFPS(SETTINGS_FPS);
+      ctrl::clear_input();
     }
     if (Clay_PointerOver(CLAY_ID("btn_backspace")))
     {
@@ -190,6 +179,10 @@ inline void board_update(
     {
       tts_play();
     }
+  }
+  if (is_board_index(opt_new_board))
+  {
+    current = opt_new_board;
   }
 }
 
