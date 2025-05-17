@@ -43,6 +43,7 @@ int main()
     InitAudioDevice();
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     SetTargetFPS(BOARD_FPS);
+    SetTraceLogLevel(LOG_WARNING);
     InitWindow(1600, 900, "aacpp");
     XMAX = GetScreenWidth();
     YMAX = GetScreenHeight();
@@ -94,6 +95,7 @@ int main()
     }
     ctrl::update();
   }
+  settings_save();
 
 SAFELY_EXIT:
 

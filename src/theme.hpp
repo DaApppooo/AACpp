@@ -14,7 +14,7 @@ namespace theme
   extern Clay_Color command_background;
   extern uint16_t font_size;
   extern Clay_Color text_field_bg_color;
-  extern float text_space_width; // SET BY resman.cpp, NOT BY settings.cpp
+  extern float text_space_width; // SET WITH update_font
   extern Font* fonts;
   // constexpr Clay_Color text_color = { 53, 53, 53, 255 };
   constexpr Clay_Sizing GROW = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() };
@@ -31,6 +31,7 @@ namespace theme
     .layoutDirection = CLAY_LEFT_TO_RIGHT
   };
   constexpr uint16_t TEXT_SPACING = 2;
+  void update_font(Font f);
 }
 
 inline Clay_TextElementConfig* get_font_config()
@@ -52,9 +53,4 @@ constexpr inline Clay_String to_clay_string(const char* cstr)
   return {str_len(cstr), cstr};
 }
 
-
-// load or reload
-void theme_load();
-
-// shouldn't be there
 #endif // H_THEME

@@ -151,7 +151,7 @@ void logging_update()
       default:
         break;
     }
-    const float f = it.value().lifetime/Log::LIFETIME;
+    const float f = std::min(2.f*it.value().lifetime/Log::LIFETIME, 1.f);
     DrawRectangleRec(r, fade(bg, f));
     DrawTextEx(
       theme::fonts[0],

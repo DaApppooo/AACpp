@@ -17,9 +17,22 @@ namespace theme
   float border_weight;
   float text_space_width;
   Font* fonts;
-}
-
-void theme_load()
-{
+  void update_font(Font f)
+  {
+    if (fonts[0].texture.id != 0)
+      UnloadFont(fonts[0]);
+    if (f.texture.id == 0)
+    {
+      fonts[0].texture.id = 0;
+      return;
+    }
+    fonts[0] = f;
+    text_space_width = MeasureTextEx(
+      fonts[0],
+      " ",
+      font_size,
+      TEXT_SPACING
+    ).x;
+  }
 }
 

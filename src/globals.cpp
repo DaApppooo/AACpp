@@ -1,12 +1,14 @@
 #include "globals.hpp"
 #include "raylib.h"
 #include "raymath.h"
+#include <cmath>
 float XMAX, YMAX;
 float dt;
 namespace ctrl
 {
   fvec2 mpos;
   fvec2 mdpos;
+  fvec2 click_pos;
   float move_amount_since_clicked;
   float dead_click = 0.f;
   bool clicked()
@@ -25,6 +27,14 @@ namespace ctrl
       return -mdpos.y;
     return 0.f;
   }
+  float delta_scroll_in(Rectangle r)
+  {
+    if (CheckCollisionPointRec(click_pos, r))
+    {
+      return delta_scroll();
+    }
+    return 0.f;
+  }
   void update()
   {
     mpos = GetMousePosition();
@@ -34,10 +44,38 @@ namespace ctrl
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
       move_amount_since_clicked = 0.f;
+      click_pos = mpos;
+    }
+    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+    {
+      click_pos = {-1.f, -1.f};
     }
     mdpos = GetMouseDelta();
     move_amount_since_clicked += Vector2Length(mdpos);
   }
+}
+
+const char* fmt(int x)
+{
+  if (x == 0)
+    return "0";
+  char* s = (char*)TextFormat(" ");
+  char* p = s;
+  while (x > 0)
+  {
+    *(p++) = '0' + (x%10);
+    x /= 10;
+  }
+  *p = 0;
+  char* q = s;
+  while (q < p)
+  { // reverse the string
+    char temp = *q;
+    *q = *(--p);
+    *p = temp;
+    q++;
+  }
+  return s;
 }
 
 void draw_text_anchored(

@@ -167,14 +167,6 @@ int res_load_boardset(Ref<Stream> s)
 
   current_actions.init();
 
-  // NOTE: Font is loaded with init_settings
-  theme::text_space_width = MeasureTextEx(
-    theme::fonts[0],
-    " ",
-    theme::font_size,
-    theme::TEXT_SPACING
-  ).x;
-
   btns[BTI_OPT] = LoadTexture("assets/opt.png");
   btns[BTI_BACKSPACE] = LoadTexture("assets/kb.png");
   btns[BTI_CLEAR] = LoadTexture("assets/cl.png");

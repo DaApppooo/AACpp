@@ -25,18 +25,43 @@ namespace ctrl
 {
   extern fvec2 mpos;
   extern fvec2 mdpos;
+  extern fvec2 click_pos;
   bool clicked();
   void update();
   float delta_scroll();
   void clear_input();
+  float delta_scroll_in(Rectangle r);
+  inline bool hover(Rectangle rec)
+  {
+    return CheckCollisionPointRec(ctrl::mpos, rec);
+  }
 }
+inline fvec2 center(Rectangle r)
+{ return {r.x+r.width/2.f, r.y+r.height/2.f}; }
 inline const char* fmt(Clay_Color c)
 {
   return TextFormat("rgb(%i,%i,%i)", (int)c.r, (int)c.g, (int)c.b);
 }
-inline bool hover(Rectangle rec)
+const char* fmt(int x);
+// removes both the extension and the path part
+inline const char* filename(const char* s)
 {
-  return CheckCollisionPointRec(ctrl::mpos, rec);
+  int i = 0;
+  int len_before_last_slash = 0;
+  while (s[i] != '.' && s[i] != 0)
+  {
+    if (s[i] == '/')
+      len_before_last_slash = 0;
+    else
+      len_before_last_slash++;
+    i++;
+  }
+  char* out = (char*)TextFormat(" ");
+  while (s[i] != '/' && i >= 0)
+  {
+    out[--len_before_last_slash] = s[--i];
+  }
+  return out;
 }
 void draw_text_anchored(
   Font font,
@@ -49,5 +74,7 @@ void draw_text_anchored(
 );
 inline Color operator ~ (Clay_Color c)
 { return {uint8_t(c.r),uint8_t(c.g),uint8_t(c.b),uint8_t(c.a)}; }
+inline Clay_Color operator ~ (Color c)
+{ return {float(c.r),float(c.g),float(c.b),float(c.a)}; }
 
 #endif
