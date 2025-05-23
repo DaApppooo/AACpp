@@ -59,8 +59,10 @@ function _inst_zlib()
     todo()
   elseif TARGET == "WIN" then
     shell("git clone https://github.com/madler/zlib.git")
-    shell(" ; cd zlib ; make -f'win32/Makefile.gcc' ; make install -f'win32/Makefile.gcc' SHARED_MODE=1 INCLUDE_PATH=include LIBRARY_PATH=lib BINARY_PATH=.")
-    todo()
+    shell("gcc -c zlib/*.c -O3 -o libz.o")
+    shell("gcc -fPIC libz.o -shared -o libz.dll")
+    mv("libz.dll", "lib")
+    mv("zlib/*.h", "include")
   end
 end
 function inst_libspng()
