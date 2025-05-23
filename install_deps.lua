@@ -122,7 +122,7 @@ function inst_iniparser()
     end
     shell("git clone https://gitlab.com/iniparser/iniparser.git")
     mkdir("iniparser/build")
-    shell("; cd iniparser/build ; cmake -DBUILD_STATIC_LIBS=OFF .. ; make all")
+    shell("; cd iniparser/build ; cmake -DBUILD_STATIC_LIBS=OFF .. CMAKE_C_COMPILER=gcc ; make all")
     mv("iniparser/build/*.dll*", "lib/")
     mv("iniparser/src/*.h", "include/")
     rm("iniparser")
