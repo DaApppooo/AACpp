@@ -137,9 +137,7 @@ function inst_obz2cobz()
   if exists("obz2cobz") then
     rm("obz2cobz")
   end
-  if not exists("lib/obz2cobz") then
-    shell("mkdir lib/obz2cobz")
-  end
+  ensure_folder("'lib/obz2cobz'")
   shell("git clone --recursive https://github.com/LibreAAC/obz2cobz.git")
   shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
   shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
