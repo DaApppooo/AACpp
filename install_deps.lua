@@ -59,8 +59,8 @@ function _inst_zlib()
     todo()
   elseif TARGET == "WIN" then
     shell("git clone https://github.com/madler/zlib.git")
-    shell("gcc -c zlib/*.c -O3 -o libz.o")
-    shell("gcc -fPIC libz.o -shared -o libz.dll")
+    shell("gcc -c zlib/*.c -O3")
+    shell("gcc -fPIC zlib/*.o -shared -o libz.dll")
     mv("libz.dll", "lib")
     mv("zlib/*.h", "include")
   end
