@@ -9,7 +9,7 @@ load_os()
 RAYLIB_VERSION = "5.5"
 CLAY_VERSION = "0.13"
 WAYLAND = "yes"
-TEMP_FOLDERS = { "raylib", "nfd", "nativefiledialog", "libspng", "iniparser" }
+TEMP_FOLDERS = { "nfd", "nativefiledialog", "libspng", "iniparser" }
 parse_args()
 
 if TARGET == "IOS" or TARGET == "ANDROID" then
@@ -39,10 +39,11 @@ function inst_nfd()
     mv("nativefiledialog/build/lib/Release/x64/libnfd.a", "lib/")
     rm("nativefiledialog")
   elseif TARGET == "WIN" then
-    shell("git clone https://github.com/mlabbe/nativefiledialog.git")
-    shell("; cd nativefiledialog/build/gmake_windows ; make config=release_x64")
-    mv("nativefiledialog/build/lib/Release/x64/libnfd.a", "lib/")
-    rm("nativefiledialog")
+    print("Skipping for windows because nfd just cannot compile for some reason.")
+    -- shell("git clone https://github.com/mlabbe/nativefiledialog.git")
+    -- shell("; cd nativefiledialog/build/gmake_windows ; make config=release_x64")
+    -- mv("nativefiledialog/build/lib/Release/x64/libnfd.a", "lib/")
+    -- rm("nativefiledialog")
   else
     todo()
   end
