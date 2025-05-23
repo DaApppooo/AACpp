@@ -58,6 +58,9 @@ function _inst_zlib()
     print("ZLIB dev files weren't found. ")
     todo()
   elseif TARGET == "WIN" then
+    if exists("zlib") then
+      rm("zlib")
+    end
     shell("git clone https://github.com/madler/zlib.git")
     shell("gcc -c zlib/*.c -O3")
     shell("gcc -fPIC zlib/*.o -shared -o libz.dll")
