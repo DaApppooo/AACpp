@@ -59,7 +59,7 @@ function _inst_zlib()
     todo()
   elseif TARGET == "WIN" then
     shell("git clone https://github.com/madler/zlib.git")
-    shell(" ; cd zlib ; make -fwin32/Makefile.gcc ; make install -fwin32/Makefile.gcc SHARED_MODE=1 INCLUDE_PATH=include LIBRARY_PATH=lib BINARY_PATH=.")
+    shell(" ; cd zlib ; make -f'win32/Makefile.gcc' ; make install -f'win32/Makefile.gcc' SHARED_MODE=1 INCLUDE_PATH=include LIBRARY_PATH=lib BINARY_PATH=.")
     todo()
   end
 end
