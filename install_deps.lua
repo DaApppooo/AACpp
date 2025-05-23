@@ -40,7 +40,7 @@ function inst_nfd()
     rm("nativefiledialog")
   elseif TARGET == "WIN" then
     shell("git clone https://github.com/mlabbe/nativefiledialog.git")
-    shell("cd nativefiledialog/build/gmake_windows && make config=release_x64")
+    shell("; cd nativefiledialog/build/gmake_windows ; make config=release_x64")
     mv("nativefiledialog/build/lib/Release/x64/libnfd.a", "lib/")
     rm("nativefiledialog")
   else
@@ -71,7 +71,7 @@ function inst_raylib()
     shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
     mv("raylib/src/libraylib.so*", "lib/")
   elseif TARGET == "WIN" then
-    shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
+    shell("; cd raylib/src ; make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
     mv("raylib/src/libraylib.dll", "lib/")
   else
     todo()
@@ -98,7 +98,7 @@ function inst_iniparser()
     end
     shell("git clone https://gitlab.com/iniparser/iniparser.git")
     mkdir("iniparser/build")
-    shell("cd iniparser/build && cmake -DBUILD_STATIC_LIBS=OFF .. -G \"MinGW Makefiles\" && make all")
+    shell("; cd iniparser/build ; cmake -DBUILD_STATIC_LIBS=OFF .. -G \"MinGW Makefiles\" ; make all")
     mv("iniparser/build/*.dll*", "lib/")
     mv("iniparser/src/*.h", "include/")
     rm("iniparser")
@@ -157,7 +157,7 @@ function inst_piper()
     extract("ppwa.zip")
     mv("piper_phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
     mv("piper_phonemize", "libpiper/lib/Windows-amd64/")
-    shell("cd libpiper && make all")
+    shell("; cd libpiper ; make all")
     if not exists("include/piper") then
       shell("mkdir include/piper")
     end
@@ -197,8 +197,13 @@ function inst_obz2cobz()
   end
   ensure_folder("'lib/obz2cobz'")
   shell("git clone --recursive https://github.com/LibreAAC/obz2cobz.git")
-  shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
-  shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
+  if TARGET == "WIN" then
+    shell("; cd obz2cobz ; lua install_deps.lua target="..TARGET)
+    shell("; cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
+  else
+    shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
+    shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
+  end
   mv("obz2cobz/bin/obz2cobz*", "assets/")
   mv("obz2cobz/lib/*", "lib/obz2cobz/")
   rm("obz2cobz")
