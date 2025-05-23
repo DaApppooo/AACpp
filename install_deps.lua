@@ -64,12 +64,14 @@ function inst_raylib()
   shell("git clone https://github.com/LibreAAC/raylib.git")
   if TARGET == "LINUX" then
     shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
-    mv("raylib/src/libraylib.so*", "lib/")
-    mv("raylib/src/raylib.h", "include/")
-    mv("raylib/src/raymath.h", "include/")
+  elseif TARGET == "WIN" then
+    shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
   else
     todo()
   end
+  mv("raylib/src/libraylib.so*", "lib/")
+  mv("raylib/src/raylib.h", "include/")
+  mv("raylib/src/raymath.h", "include/")
   rm("raylib/")
 end
 function inst_iniparser()
