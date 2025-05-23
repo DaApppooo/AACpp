@@ -26,6 +26,8 @@ if TARGET == "WIN" then
                 popen("powershell.exe '(Get-Command gcc).source'")..
                 "' -DCMAKE_CXX_COMPILER='"..
                 popen("powershell.exe '(Get-Command g++).source'")..
+                "' -DCMAKE_MAKE_PROGRAM='"..
+                popen("powershell.exe '(Get-Command make).source'")..
                 "'"
                 )
 end
