@@ -234,8 +234,8 @@ function inst_obz2cobz()
   ensure_folder("'lib/obz2cobz'")
   shell("git clone --recursive https://github.com/LibreAAC/obz2cobz.git")
   if TARGET == "WIN" then
-    shell("; cd obz2cobz ; lua install_deps.lua target="..TARGET)
-    shell("; cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
+    shell("; cd obz2cobz ; lua install_deps.lua target=WIN")
+    shell("; cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target=WIN")
   else
     shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
     shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
