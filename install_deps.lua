@@ -27,11 +27,7 @@ end
 
 function inst_clay()
   print("Updating/Installing clay.h ...")
-  if TARGET == "LINUX" then
-    shell("wget https://github.com/nicbarker/clay/releases/download/v"..CLAY_VERSION.."/clay.h")
-  else
-    todo()
-  end
+  wget("https://github.com/nicbarker/clay/releases/download/v"..CLAY_VERSION.."/clay.h", "clay.h")
   mv("clay.h", "src/clay.h")
 end
 
@@ -40,6 +36,11 @@ function inst_nfd()
   if TARGET == "LINUX" then
     shell("git clone https://github.com/mlabbe/nativefiledialog.git")
     shell("cd nativefiledialog/build/gmake_linux && make config=release_x64")
+    mv("nativefiledialog/build/lib/Release/x64/libnfd.a", "lib/")
+    rm("nativefiledialog")
+  elseif TARGET == "WIN" then
+    shell("git clone https://github.com/mlabbe/nativefiledialog.git")
+    shell("cd nativefiledialog/build/gmake_windows && make config=release_x64")
     mv("nativefiledialog/build/lib/Release/x64/libnfd.a", "lib/")
     rm("nativefiledialog")
   else
@@ -51,6 +52,10 @@ function inst_libspng()
   if TARGET == "LINUX" then
     shell("git clone https://github.com/randy408/libspng.git")
     shell("gcc -fPIC libspng/spng/spng.c -shared -o lib/libspng.so")
+    rm("libspng")
+  elseif TARGET == "WIN" then
+    shell("git clone https://github.com/randy408/libspng.git")
+    shell("gcc -fPIC libspng/spng/spng.c -shared -o lib/libspng.dll")
     rm("libspng")
   else
     todo()
@@ -64,12 +69,13 @@ function inst_raylib()
   shell("git clone https://github.com/LibreAAC/raylib.git")
   if TARGET == "LINUX" then
     shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
+    mv("raylib/src/libraylib.so*", "lib/")
   elseif TARGET == "WIN" then
     shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
+    mv("raylib/src/libraylib.dll", "lib/")
   else
     todo()
   end
-  mv("raylib/src/libraylib.so*", "lib/")
   mv("raylib/src/raylib.h", "include/")
   mv("raylib/src/raymath.h", "include/")
   rm("raylib/")
@@ -81,9 +87,19 @@ function inst_iniparser()
       rm("iniparser")
     end
     shell("git clone https://gitlab.com/iniparser/iniparser.git")
-    shell("mkdir iniparser/build")
+    mkdir("iniparser/build")
     shell("cd iniparser/build && cmake -DBUILD_STATIC_LIBS=OFF .. && make all")
     mv("iniparser/build/*.so*", "lib/")
+    mv("iniparser/src/*.h", "include/")
+    rm("iniparser")
+  elseif TARGET == "WIN" then
+    if exists("iniparser") then
+      rm("iniparser")
+    end
+    shell("git clone https://gitlab.com/iniparser/iniparser.git")
+    mkdir("iniparser/build")
+    shell("cd iniparser/build && cmake -DBUILD_STATIC_LIBS=OFF .. -G \"MinGW Makefiles\" && make all")
+    mv("iniparser/build/*.dll*", "lib/")
     mv("iniparser/src/*.h", "include/")
     rm("iniparser")
   else
@@ -97,9 +113,10 @@ function inst_piper()
       rm("libpiper")
     end
     shell("git clone https://github.com/DaApppooo/libpiper.git")
-    shell("wget https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz")
-    shell("mkdir -p libpiper/lib/Linux-$(uname -m)/")
-    shell("tar -xzvf piper-phonemize_linux_$(uname -m).tar.gz")
+    wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz"
+          "piper-phonemize.tar.gz")
+    mkdir("libpiper/lib/Linux-$(uname -m)/")
+    extract("piper-phonemize.tar.gz")
     mv("piper_phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
     mv("piper_phonemize", "libpiper/lib/Linux-$(uname -m)/")
     shell("cd libpiper && make all")
@@ -130,6 +147,45 @@ function inst_piper()
     mv("libpiper/build/pi/include/piper-phonemize/tashkeel.hpp", "include/piper/piper-phonemize/")
     rm("libpiper")
     rm("piper-phonemize*")
+  elseif TARGET == "WIN" then
+    if exists("libpiper") then
+      rm("libpiper")
+    end
+    shell("git clone https://github.com/DaApppooo/libpiper.git")
+    wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_windows_amd64.zip", "ppwa.zip")
+    shell("mkdir -p libpiper/lib/Windows-amd64/")
+    extract("ppwa.zip")
+    mv("piper_phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
+    mv("piper_phonemize", "libpiper/lib/Windows-amd64/")
+    shell("cd libpiper && make all")
+    if not exists("include/piper") then
+      shell("mkdir include/piper")
+    end
+    mv("libpiper/build/libpiper.dll", "lib/")
+    mv("libpiper/src/cpp/*.h*", "include/piper")
+    mv("libpiper/src/cpp/utf8/", "include/piper")
+    mv("libpiper/install/libpiper.dll", "lib/")
+    mv("libpiper/install/libpiper_phonemize.dll*", "lib/")
+    mv("libpiper/install/libonnxruntime.dll*", "lib/")
+    mv("libpiper/install/libespeak-ng.dll*", "lib/")
+    mv("libpiper/install/espeak-ng-data", "assets/")
+    mv("libpiper/build/pi/include/onnxruntime_c_api.h", "include/piper/")
+    mv("libpiper/build/pi/include/onnxruntime_cxx_api.h", "include/piper/")
+    mv("libpiper/build/pi/include/onnxruntime_cxx_inline.h", "include/piper/")
+    if not exists("include/piper/espeak-ng/") then
+      shell("mkdir include/piper/espeak-ng/")
+    end
+    mv("libpiper/build/pi/include/espeak-ng/speak_lib.h", "include/piper/espeak-ng")
+    if not exists("include/piper/piper-phonemize/") then
+      shell("mkdir include/piper/piper-phonemize/")
+    end
+    mv("libpiper/build/pi/include/piper-phonemize/phoneme_ids.hpp", "include/piper/piper-phonemize/")
+    mv("libpiper/build/pi/include/piper-phonemize/phonemize.hpp", "include/piper/piper-phonemize/")
+    mv("libpiper/build/pi/include/piper-phonemize/shared.hpp", "include/piper/piper-phonemize/")
+    mv("libpiper/build/pi/include/piper-phonemize/tashkeel.hpp", "include/piper/piper-phonemize/")
+    rm("libpiper")
+    rm("piper-phonemize*")
+    rm("ppwa.zip")
   else
     todo()
   end
