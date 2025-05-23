@@ -20,6 +20,16 @@ ensure_folder("lib")
 ensure_folder("include")
 ensure_folder("licenses")
 
+CMAKE_FLAGS = ""
+if TARGET == "WIN" then
+  CMAKE_FLAGS = ("-G 'NMake Makefiles' -DCMAKE_C_COMPILER='"..
+                popen("powershell.exe '(Get-Command gcc).source'")..
+                "' -DCMAKE_CXX_COMPILER='"..
+                popen("powershell.exe '(Get-Command g++).source'")..
+                "'"
+                )
+end
+
 print("Check that compiler is available...")
 if not os.execute("gcc --version") then
   error("Missing gcc. Please go install gcc.")
@@ -122,7 +132,7 @@ function inst_iniparser()
     end
     shell("git clone https://gitlab.com/iniparser/iniparser.git")
     mkdir("iniparser/build")
-    shell("; cd iniparser/build ; cmake -DBUILD_STATIC_LIBS=OFF .. CMAKE_C_COMPILER=gcc ; make all")
+    shell("; cd iniparser/build ; cmake -DBUILD_STATIC_LIBS=OFF .. "..CMAKE_FLAGS.." ; make all")
     mv("iniparser/build/*.dll*", "lib/")
     mv("iniparser/src/*.h", "include/")
     rm("iniparser")
