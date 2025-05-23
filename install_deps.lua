@@ -47,7 +47,24 @@ function inst_nfd()
     todo()
   end
 end
+function _inst_zlib()
+  print("Downloadn, compile and move zlib...")
+  if TARGET == "LINUX" then
+    if os.execute("printf '#include <zlib.h>\nint main() {return 0;}' | gcc -cx - -o _test") then
+      rm("_test")
+      print("ZLIB dev files were found. Skipping compilation.")
+      return
+    end
+    print("ZLIB dev files weren't found. ")
+    todo()
+  elseif TARGET == "WIN" then
+    shell("git clone https://github.com/madler/zlib.git")
+    shell(" ; cd zlib ; make -fwin32/Makefile.gcc ; make install -fwin32/Makefile.gcc SHARED_MODE=1 INCLUDE_PATH=include LIBRARY_PATH=lib BINARY_PATH=.")
+    todo()
+  end
+end
 function inst_libspng()
+  _inst_zlib()
   print("Download, compile and move libspng...")
   if TARGET == "LINUX" then
     shell("git clone https://github.com/randy408/libspng.git")
@@ -55,7 +72,7 @@ function inst_libspng()
     rm("libspng")
   elseif TARGET == "WIN" then
     shell("git clone https://github.com/randy408/libspng.git")
-    shell("gcc -fPIC libspng/spng/spng.c -shared -o lib/libspng.dll")
+    shell("gcc -fPIC libspng/spng/spng.c -L lib -lz -I include -shared -o lib/libspng.dll")
     rm("libspng")
   else
     todo()
@@ -78,7 +95,7 @@ function inst_raylib()
   end
   mv("raylib/src/raylib.h", "include/")
   mv("raylib/src/raymath.h", "include/")
-  rm("raylib/")
+  -- rm("raylib/")
 end
 function inst_iniparser()
   print("Download, compile and move iniParser 4...")
