@@ -22,7 +22,7 @@ ensure_folder("licenses")
 
 CMAKE_FLAGS = ""
 if TARGET == "WIN" then
-  CMAKE_FLAGS = ("-G 'NMake Makefiles' -DCMAKE_C_COMPILER='"..
+  CMAKE_FLAGS = ("-G 'MinGW Makefiles' -DCMAKE_C_COMPILER='"..
                 popen("(Get-Command gcc).source")..
                 "' -DCMAKE_CXX_COMPILER='"..
                 popen("(Get-Command g++).source")..
