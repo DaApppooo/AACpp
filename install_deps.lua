@@ -113,7 +113,7 @@ function inst_piper()
       rm("libpiper")
     end
     shell("git clone https://github.com/DaApppooo/libpiper.git")
-    wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz"
+    wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz",
           "piper-phonemize.tar.gz")
     mkdir("libpiper/lib/Linux-$(uname -m)/")
     extract("piper-phonemize.tar.gz")
