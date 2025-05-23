@@ -63,7 +63,8 @@ function _inst_zlib()
     end
     shell("git clone https://github.com/madler/zlib.git")
     shell("gcc -c zlib/*.c -O3")
-    shell("gcc -fPIC zlib/*.o -shared -o libz.dll")
+    shell("gcc -fPIC *.o -shared -o libz.dll")
+    rm("*.o")
     mv("libz.dll", "lib")
     mv("zlib/*.h", "include")
   end
