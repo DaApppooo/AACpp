@@ -246,3 +246,7 @@ function inst_obz2cobz()
 end
 
 run_install_scripts()
+if TARGET == "WIN" then
+  mv("lib/*.dll", "bin")
+end
+

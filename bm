@@ -14,7 +14,7 @@ SRC_PATH = "src"
 CFLAGS = f"-std=c++20 -D FILE_DIALOG -I include -I include/piper -I src/shared -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
 if platform.system() == "Windows":
 	LFLAGS = """
-	-Llib -lnfd -lraylib -lspng -lpiper -liniparser -lespeak-ng
+	-Llib -Lbin -lnfd -lraylib -lspng -lpiper -liniparser -lespeak-ng
 	-lonnxruntime -lpiper_phonemize -lui
 	-lpthread -lz
 	""".replace('\n', ' ')
