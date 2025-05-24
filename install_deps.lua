@@ -240,7 +240,7 @@ function inst_obz2cobz()
     shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
     shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
   end
-  mv("obz2cobz/bin/obz2cobz*", "assets/")
+  mv("obz2cobz/bin/*", "assets/")
   mv("obz2cobz/lib/*", "lib/obz2cobz/")
   rm("obz2cobz")
 end
