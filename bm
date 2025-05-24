@@ -5,20 +5,28 @@ import re
 from sys import argv, exit
 from json import load, dump
 import shlex
+import platform
 
 FLAG_DEBUG = 1
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
 CFLAGS = f"-std=c++20 -D FILE_DIALOG -I include -I include/piper -I src/shared -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
-LFLAGS = (
-"""
--Llib -lnfd -lraylib -lspng -lpiper -liniparser -lespeak-ng
--lonnxruntime -lpiper_phonemize -lui -dynamic
--lGL -lm -lpthread -ldl -lrt -lX11 -lz
--dynamic `pkg-config --cflags --libs gtk+-3.0`
-""".replace('\n', ' ')
-)
+if platform.system() == "Windows":
+	LFLAGS = """
+	-Llib -lnfd -lraylib -lspng -lpiper -liniparser -lespeak-ng
+	-lonnxruntime -lpiper_phonemize -lui
+	-lpthread -lz
+	""".replace('\n', ' ')
+else:
+	LFLAGS = (
+	"""
+	-Llib -lnfd -lraylib -lspng -lpiper -liniparser -lespeak-ng
+	-lonnxruntime -lpiper_phonemize -lui -dynamic
+	-lGL -lm -lpthread -ldl -lrt -lX11 -lz
+	-dynamic `pkg-config --cflags --libs gtk+-3.0`
+	""".replace('\n', ' ')
+	)
 LIB_DIR = "lib"
 OBJ_PATH = "temp"
 BIN = "bin/aac" # Bin path is deduced from this.
