@@ -22,14 +22,14 @@ ensure_folder("licenses")
 
 CMAKE_FLAGS = ""
 if TARGET == "WIN" then
-  CMAKE_SHORT_FLAGS = ("-DCMAKE_C_COMPILER='"..popen("where gcc")..
-                "' -DCMAKE_CXX_COMPILER='"..
+  CMAKE_SHORT_FLAGS = ("-DCMAKE_CXX_COMPILER='"..
                 popen("where g++")..
                 "' -DCMAKE_MAKE_PROGRAM='"..
                 popen("where make")..
                 "'"
                 )
-  CMAKE_FLAGS = "-G 'MinGW Makefiles' "..CMAKE_SHORT_FLAGS
+  CMAKE_FLAGS = "-G 'MinGW Makefiles' -DCMAKE_C_COMPILER='"..popen("where gcc")..
+                "' "..CMAKE_SHORT_FLAGS
 end
 
 print("Check that compiler is available...")
