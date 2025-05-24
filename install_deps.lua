@@ -108,7 +108,7 @@ function inst_raylib()
     mv("raylib/src/libraylib.so*", "lib/")
   elseif TARGET == "WIN" then
     shell("; cd raylib/src ; make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
-    mv("raylib/src/libraylib.dll", "lib/")
+    mv("raylib/src/raylib.dll", "lib/")
   else
     todo()
   end
@@ -152,9 +152,12 @@ function inst_piper()
     wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz",
           "piper-phonemize.tar.gz")
     mkdir("libpiper/lib/Linux-$(uname -m)/")
+    if exists("piper-phonemize") then
+      rm("piper-phonemize")
+    end
     extract("piper-phonemize.tar.gz")
-    mv("piper_phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
-    mv("piper_phonemize", "libpiper/lib/Linux-$(uname -m)/")
+    mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
+    mv("piper-phonemize", "libpiper/lib/Linux-$(uname -m)/")
     shell("cd libpiper && make all")
     if not exists("include/piper") then
       shell("mkdir include/piper")
@@ -191,8 +194,8 @@ function inst_piper()
     wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_windows_amd64.zip", "ppwa.zip")
     shell("mkdir -p libpiper/lib/Windows-amd64/")
     extract("ppwa.zip")
-    mv("piper_phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
-    mv("piper_phonemize", "libpiper/lib/Windows-amd64/")
+    mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
+    mv("piper-phonemize", "libpiper/lib/Windows-amd64/")
     shell("; cd libpiper ; make all")
     if not exists("include/piper") then
       shell("mkdir include/piper")
