@@ -152,9 +152,6 @@ function inst_piper()
     wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz",
           "piper-phonemize.tar.gz")
     mkdir("libpiper/lib/Linux-$(uname -m)/")
-    if exists("piper-phonemize") then
-      rm("piper-phonemize")
-    end
     extract("piper-phonemize.tar.gz")
     mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
     mv("piper-phonemize", "libpiper/lib/Linux-$(uname -m)/")
@@ -194,7 +191,8 @@ function inst_piper()
     wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_windows_amd64.zip", "ppwa.zip")
     shell("mkdir -p libpiper/lib/Windows-amd64/")
     extract("ppwa.zip")
-    mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
+    -- No licenses ???
+    -- mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
     mv("piper-phonemize", "libpiper/lib/Windows-amd64/")
     shell("; cd libpiper ; cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install "..CMAKE_FLAGS)
     shell("; cd libpiper ; cmake --build build --config Release "..CMAKE_FLAGS)
