@@ -195,7 +195,7 @@ function inst_piper()
     -- mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
     mv("piper-phonemize", "libpiper/lib/Windows-amd64/")
     shell("; cd libpiper ; cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install "..CMAKE_FLAGS)
-    shell("; cd libpiper/build ; make")
+    shell("; cd libpiper/build ; make -f CMakeFiles/Makefile2")
     shell("; cd libpiper/build ; make install")
     if not exists("include/piper") then
       shell("mkdir include/piper")
