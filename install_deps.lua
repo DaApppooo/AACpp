@@ -22,16 +22,8 @@ ensure_folder("licenses")
 
 CMAKE_FLAGS = ""
 if TARGET == "WIN" then
-  -- CMAKE_SHORT_FLAGS = ("-DCMAKE_MAKE_PROGRAM='"..
-  --               popen("where make")..
-  --               "'"
-  --               )
   CMAKE_SHORT_FLAGS = ""
-  CMAKE_FLAGS = "-G 'MSYS Makefiles'" --"'MinGW Makefiles'"
-              -- -DCMAKE_C_COMPILER='"..popen("where gcc")..
-              --   "' -DCMAKE_CXX_COMPILER='"..
-              --   popen("where g++")..
-              --   "' "..CMAKE_SHORT_FLAGS
+  CMAKE_FLAGS = "-G 'MSYS Makefiles'"
 end
 
 print("Check that compiler is available...")
@@ -196,7 +188,7 @@ function inst_piper()
     -- No licenses ???
     -- mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
     mv("piper-phonemize", "libpiper/lib/Windows-amd64/")
-    shell("; cd libpiper ; cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install "..CMAKE_FLAGS)
+    shell("; cd libpiper ; cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install")
     shell("; cd libpiper ; cmake --build build --config Release")
     shell("; cd libpiper ; cmake --install build")
     if not exists("include/piper") then

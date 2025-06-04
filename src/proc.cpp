@@ -45,5 +45,13 @@ bool Proc::ended()
   return rval != 0;
 }
 
+#elif defined(_WIN32)
+
+void Proc::launch()
+
+#else
+
+#error Unknown target (Only __linux__ or _WIN32 are supported).
+
 #endif /* __linux__ */
 
