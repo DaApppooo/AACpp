@@ -109,6 +109,7 @@ function inst_raylib()
   end
   mv("raylib/src/raylib.h", "include/")
   mv("raylib/src/raymath.h", "include/")
+  mv("raylib/src/rlgl.h", "include/")
   -- rm("raylib/")
 end
 function inst_iniparser()
@@ -140,7 +141,6 @@ end
 function inst_piper()
   print("Download, compile and move (lib)Piper...")
   if TARGET == "LINUX" then
-
     wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_linux_$(uname -m).tar.gz", "piper.tar.gz")
     extract("piper.tar.gz")
     mv("piper", "assets/piper")
@@ -188,7 +188,7 @@ function inst_piper()
     wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_windows_amd64.zip", "piper.zip")
     extract("piper.zip")
     mv("piper", "assets/piper")
-    rm("piper.tar.gz")
+    rm("piper.zip")
   else
     todo()
   end
