@@ -398,7 +398,7 @@ PickAndLoadResult settings_try_once_pick_board(bool clear)
       "assets/obz2cobz",
       child_param_buffer
     );)
-    WIN32(
+    WIN(
       child.launch(
         TextFormat("assets\\obz2cobz %s %s.cobz",
                    unknown_board_path, unknown_board_path),

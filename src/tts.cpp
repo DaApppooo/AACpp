@@ -63,7 +63,7 @@ void tts_play()
         fwrite(tts_msg_final, TTS_MSG_LEN, 1, text);
         fclose(text);
         const char* cmd;
-        WIN32(
+        WIN(
           cmd = TextFormat("assets\\piper\\piper.exe -f assets\\voice.wav "
                            "-m %s -c %s.json < assets\\text.txt",
                          tts_param, tts_param);

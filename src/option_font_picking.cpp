@@ -2,9 +2,6 @@
 #include "settings.hpp"
 #include "theme.hpp"
 #include "option_font_picking.hpp"
-#ifdef _WIN32
-#include "gdiplusgraphics.h"
-#endif
 
 namespace font_picking
 {
@@ -47,7 +44,7 @@ namespace font_picking
       UnloadDirectoryFiles(fpl);
     }
     
-    WIN32(
+    WIN(
       // future: will probably use the systemfonts library to to the annoying
       // part.
       return;

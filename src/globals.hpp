@@ -10,11 +10,11 @@
 #define rgb(R,G,B) {uint8_t(R), uint8_t(G), uint8_t(B), 255}
 #define fade(COLOR, F0_1) {COLOR.r, COLOR.g, COLOR.b, uint8_t(F0_1*255.f)}
 #ifdef _WIN32
-#define WIN32(DO_SOMETHING) {DO_SOMETHING}
+#define WIN(DO_SOMETHING) {DO_SOMETHING}
 #define LINUX(DO_NOTHING)
 #define PATH_DELIM '\\'
 #elif defined(__linux__)
-#define WIN32(DO_NOTHING)
+#define WIN(DO_NOTHING)
 #define LINUX(DO_SOMETHING) {DO_SOMETHING}
 #define PATH_DELIM '/'
 #else
