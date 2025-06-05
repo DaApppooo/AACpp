@@ -46,7 +46,6 @@ bool Proc::ended()
 }
 
 #elif defined(_WIN32)
-#include "utils.hpp"
 
 void Proc::launch(const char* ex, char* const* argv)
 {

@@ -1,5 +1,8 @@
 #ifndef H_PROC
 #define H_PROC
+#ifdef _WIN32
+#include "utils.hpp"
+#endif
 
 #include <pthread.h>
 #ifdef __linux__
