@@ -144,6 +144,7 @@ function inst_piper()
     wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_linux_$(uname -m).tar.gz", "piper.tar.gz")
     extract("piper.tar.gz")
     mv("piper", "assets/piper")
+    rm("piper.tar.gz")
     
     -- if exists("libpiper") then
     --   rm("libpiper")
@@ -187,6 +188,7 @@ function inst_piper()
     wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_windows_amd64.zip", "piper.zip")
     extract("piper.zip")
     mv("piper", "assets/piper")
+    rm("piper.tar.gz")
   else
     todo()
   end
