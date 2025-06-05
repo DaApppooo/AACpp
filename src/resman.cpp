@@ -111,6 +111,8 @@ void TextureDumpLoad(Texture& tex, Stream s)
   tex.width  = ihdr.width;
   tex.mipmaps = 1;
   
+  if (data != nullptr)
+    free(data);
   if (tex.id > 0)
   {
     TraceLog(LOG_INFO, "Successfuly loaded one image from file !");

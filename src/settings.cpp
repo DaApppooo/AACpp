@@ -394,10 +394,17 @@ PickAndLoadResult settings_try_once_pick_board(bool clear)
     child_param_buffer[1] = (char*)unknown_board_path;
     child_param_buffer[2] = (char*)TextFormat("%s.cobz", unknown_board_path);
     child_param_buffer[3] = nullptr;
-    child.launch(
+    LINUX(child.launch(
       "assets/obz2cobz",
       child_param_buffer
-    );
+    );)
+    WIN32(
+      child.launch(
+        TextFormat("assets\\obz2cobz %s %s.cobz",
+                   unknown_board_path, unknown_board_path),
+        nullptr
+      );
+    )
     float t = 0;
     float dt;
     WaitTime(0.5);

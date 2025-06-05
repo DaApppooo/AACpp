@@ -1,7 +1,6 @@
+#include "globals.hpp"
 #include "utils.hpp"
-#include "piper.hpp"
 #include <cstdlib>
-#include <optional>
 #include <raylib.h>
 #include "tts.hpp"
 
@@ -18,13 +17,9 @@ char tts_msg_final[TTS_MSG_LEN];
 #error THIS PART IS TODO
 #endif
 
-#ifdef __linux__
-// constexpr int TTS_CLI_LEN = 1024;
-// char tts_cli[TTS_CLI_LEN];
 void init_tts()
 {
   memset(tts_msg_builder, 0, sizeof(FixedString::Char)*2048);
-  setenv("ESPEAK_DATA_PATH", "assets/espeak-ng-data", 1);
   // memset(tts_cli, 0, sizeof(char)*1024);
 }
 void tts_push(FixedString& w)
@@ -59,45 +54,37 @@ void tts_play()
   {
     case TTS_PIPER:
       {
-        piper::PiperConfig config;
-        piper::Voice voice;
-        std::string text;
-        std::ofstream audio_file;
-        std::optional<piper::SpeakerId> spkid;
-        piper::SynthesisResult res;
-        piper::loadVoice(
-          config, tts_param, std::string(tts_param)+".json",
-          voice, spkid, false
-        );
-        if (voice.phonemizeConfig.phonemeType == piper::eSpeakPhonemes)
+        FILE* text = fopen("assets/text.txt", "w");
+        if (!text)
         {
-          config.eSpeakDataPath = "assets/espeak-ng-data";
-          config.useESpeak = true;
+          TraceLog(LOG_ERROR, "[TTS] Failed to write text to file.");
+          break;
         }
-        else
-          config.useESpeak = false;
-        if (voice.phonemizeConfig.eSpeak.voice == "ar")
+        fwrite(tts_msg_final, TTS_MSG_LEN, 1, text);
+        fclose(text);
+        const char* cmd;
+        WIN32(
+          cmd = TextFormat("assets\\piper\\piper.exe -f assets\\voice.wav "
+                           "-m %s -c %s.json < assets\\text.txt",
+                         tts_param, tts_param);
+        )
+        LINUX(
+          cmd = TextFormat("assets/piper/piper -f assets/voice.wav "
+                           "-m %s -c %s.json < assets/text.txt",
+                         tts_param, tts_param);
+        )
+        system(cmd);
+        if (IsSoundPlaying(rlsound) || IsSoundValid(rlsound))
         {
-          TraceLog(LOG_ERROR, "Arabic (with tashkeel) is not yet supported.");
-          return;
+          StopSound(rlsound);
+          UnloadSound(rlsound);
         }
-        config.useTashkeel = false;
-        printf("config.eSpeakDataPath='%s'\n", config.eSpeakDataPath.c_str());
-        piper::initialize(config);
-        audio_file.open("assets/tmp.wav", std::ios::binary);
-        piper::textToWavFile(config, voice, tts_msg_final, audio_file, res);
-        audio_file.close();
-        TraceLog(LOG_INFO, "(lib)PIPER: Generated wave file successfuly.");
-        rlsound = LoadSound("assets/tmp.wav"); // emits info msg
-        if (rlsound.frameCount == 0)
-          return;
+        rlsound = LoadSound("assets/voice.wav");
         PlaySound(rlsound);
-        piper::terminate(config);
         break;
       }
   }
 }
-#endif
 
 
 void tts_clear()

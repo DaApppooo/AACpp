@@ -47,7 +47,53 @@ bool Proc::ended()
 
 #elif defined(_WIN32)
 
-void Proc::launch()
+void Proc::launch(const char* ex, char* const* argv)
+{
+  assert(argv == nullptr);
+  ZeroMemory( &si, sizeof(si) );
+  si.cb = sizeof(si);
+  ZeroMemory( &pi, sizeof(pi) );
+  if( !CreateProcess( NULL,   // No module name (use command line)
+      ex,        // Command line
+      NULL,           // Process handle not inheritable
+      NULL,           // Thread handle not inheritable
+      FALSE,          // Set handle inheritance to FALSE
+      0,              // No creation flags
+      NULL,           // Use parent's environment block
+      NULL,           // Use parent's starting directory 
+      &si,            // Pointer to STARTUPINFO structure
+      &pi )           // Pointer to PROCESS_INFORMATION structure
+  ) 
+  {
+    printf( "CreateProcess failed (%d).\n", GetLastError() );
+    return;
+  }
+}
+
+void Proc::kill()
+{
+  TerminateProcess(
+    pi.hProcess,
+    1U
+  );
+  CloseHandle( pi.hProcess );
+  CloseHandle( pi.hThread );
+}
+
+bool Proc::ended()
+{
+  // Wait until child process exits.
+  int status = WaitForSingleObject( pi.hProcess, 10 );
+  if (status == WAIT_TIMEOUT)
+    return false;
+  else
+  {
+    // Close process and thread handles. 
+    CloseHandle( pi.hProcess );
+    CloseHandle( pi.hThread );
+    return true;
+  }
+}
 
 #else
 

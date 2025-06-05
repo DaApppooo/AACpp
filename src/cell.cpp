@@ -12,6 +12,7 @@
 void Cell::destroy()
 {
   name.destroy();
+  actions.destroy();
 }
 
 Rectangle Cell::get_rect(const Board& board, int x, int y) const

@@ -6,8 +6,6 @@ savecrash*
 */*.csv
 lib/*
 include/*
-!include/list.hpp
-!include/utils.hpp
 licenses/*
 tts/*
 obz2cobz/cJSON.*
@@ -17,4 +15,4 @@ obz2cobz/stb*
 compile_commands.json
 .cache/*
 assets/obz2cobz
-assets/espeak-ng-data
+assets/piper/*

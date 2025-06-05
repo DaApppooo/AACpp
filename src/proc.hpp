@@ -21,6 +21,11 @@ struct Proc
 
 #ifdef __linux__
   pid_t child;
+#elif defined(_WIN32)
+  STARTUPINFO si;
+  PROCESS_INFORMATION pi;
+#else
+#error Unknown target.
 #endif
 };
 

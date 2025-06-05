@@ -8,6 +8,7 @@ require("src/shared/shared")
 load_os()
 RAYLIB_VERSION = "5.5"
 CLAY_VERSION = "0.13"
+PIPER_VERSION = "2023.11.14-2"
 WAYLAND = "yes"
 TEMP_FOLDERS = { "nfd", "nativefiledialog", "libspng", "iniparser" }
 parse_args()
@@ -139,86 +140,53 @@ end
 function inst_piper()
   print("Download, compile and move (lib)Piper...")
   if TARGET == "LINUX" then
-    if exists("libpiper") then
-      rm("libpiper")
-    end
-    shell("git clone https://github.com/DaApppooo/libpiper.git")
-    wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_linux_$(uname -m).tar.gz",
-          "piper-phonemize.tar.gz")
-    mkdir("libpiper/lib/Linux-$(uname -m)/")
-    extract("piper-phonemize.tar.gz")
-    mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
-    mv("piper-phonemize", "libpiper/lib/Linux-$(uname -m)/")
-    shell("cd libpiper && make all")
-    if not exists("include/piper") then
-      shell("mkdir include/piper")
-    end
-    mv("libpiper/build/libpiper.so", "lib/")
-    mv("libpiper/src/cpp/*.h*", "include/piper")
-    mv("libpiper/src/cpp/utf8/", "include/piper")
-    mv("libpiper/install/libpiper.so", "lib/")
-    mv("libpiper/install/libpiper_phonemize.so*", "lib/")
-    mv("libpiper/install/libonnxruntime.so*", "lib/")
-    mv("libpiper/install/libespeak-ng.so*", "lib/")
-    mv("libpiper/install/espeak-ng-data", "assets/")
-    mv("libpiper/build/pi/include/onnxruntime_c_api.h", "include/piper/")
-    mv("libpiper/build/pi/include/onnxruntime_cxx_api.h", "include/piper/")
-    mv("libpiper/build/pi/include/onnxruntime_cxx_inline.h", "include/piper/")
-    if not exists("include/piper/espeak-ng/") then
-      shell("mkdir include/piper/espeak-ng/")
-    end
-    mv("libpiper/build/pi/include/espeak-ng/speak_lib.h", "include/piper/espeak-ng")
-    if not exists("include/piper/piper-phonemize/") then
-      shell("mkdir include/piper/piper-phonemize/")
-    end
-    mv("libpiper/build/pi/include/piper-phonemize/phoneme_ids.hpp", "include/piper/piper-phonemize/")
-    mv("libpiper/build/pi/include/piper-phonemize/phonemize.hpp", "include/piper/piper-phonemize/")
-    mv("libpiper/build/pi/include/piper-phonemize/shared.hpp", "include/piper/piper-phonemize/")
-    mv("libpiper/build/pi/include/piper-phonemize/tashkeel.hpp", "include/piper/piper-phonemize/")
-    rm("libpiper")
-    rm("piper-phonemize*")
-  elseif TARGET == "WIN" then
-    if exists("libpiper") then
-      rm("libpiper")
-    end
-    shell("git clone https://github.com/DaApppooo/libpiper.git")
-    wget("https://github.com/rhasspy/piper-phonemize/releases/download/2023.11.14-4/piper-phonemize_windows_amd64.zip", "ppwa.zip")
-    shell("mkdir -p libpiper/lib/Windows-amd64/")
-    extract("ppwa.zip")
-    -- No licenses ???
+
+    wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_linux_$(uname -m).tar.gz", "piper.tar.gz")
+    extract("piper.tar.gz")
+    mv("piper", "assets/piper")
+    
+    -- if exists("libpiper") then
+    --   rm("libpiper")
+    -- end
+    -- shell("git clone https://github.com/DaApppooo/libpiper.git")
+    -- wget("https://github.com/rhasspy/piper-phonemize/releases/download/"..PIPER_VERSION.."/piper-phonemize_linux_$(uname -m).tar.gz",
+    --       "piper-phonemize.tar.gz")
+    -- mkdir("libpiper/lib/Linux-$(uname -m)/")
+    -- extract("piper-phonemize.tar.gz")
     -- mv("piper-phonemize/licenses/uni-algo/LICENSE.md", "licenses/piper.uni-algo.md")
-    mv("piper-phonemize", "libpiper/lib/Windows-amd64/")
-    shell("; cd libpiper ; cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install")
-    shell("; cd libpiper ; cmake --build build --config Release")
-    shell("; cd libpiper ; cmake --install build")
-    if not exists("include/piper") then
-      shell("mkdir include/piper")
-    end
-    mv("libpiper/build/libpiper.dll", "lib/")
-    mv("libpiper/src/cpp/*.h*", "include/piper")
-    mv("libpiper/src/cpp/utf8/", "include/piper")
-    mv("libpiper/install/libpiper.dll", "lib/")
-    mv("libpiper/install/libpiper_phonemize.dll*", "lib/")
-    mv("libpiper/install/libonnxruntime.dll*", "lib/")
-    mv("libpiper/install/libespeak-ng.dll*", "lib/")
-    mv("libpiper/install/espeak-ng-data", "assets/")
-    mv("libpiper/build/pi/include/onnxruntime_c_api.h", "include/piper/")
-    mv("libpiper/build/pi/include/onnxruntime_cxx_api.h", "include/piper/")
-    mv("libpiper/build/pi/include/onnxruntime_cxx_inline.h", "include/piper/")
-    if not exists("include/piper/espeak-ng/") then
-      shell("mkdir include/piper/espeak-ng/")
-    end
-    mv("libpiper/build/pi/include/espeak-ng/speak_lib.h", "include/piper/espeak-ng")
-    if not exists("include/piper/piper-phonemize/") then
-      shell("mkdir include/piper/piper-phonemize/")
-    end
-    mv("libpiper/build/pi/include/piper-phonemize/phoneme_ids.hpp", "include/piper/piper-phonemize/")
-    mv("libpiper/build/pi/include/piper-phonemize/phonemize.hpp", "include/piper/piper-phonemize/")
-    mv("libpiper/build/pi/include/piper-phonemize/shared.hpp", "include/piper/piper-phonemize/")
-    mv("libpiper/build/pi/include/piper-phonemize/tashkeel.hpp", "include/piper/piper-phonemize/")
-    rm("libpiper")
-    rm("piper-phonemize*")
-    rm("ppwa.zip")
+    -- mv("piper-phonemize", "libpiper/lib/Linux-$(uname -m)/")
+    -- shell("cd libpiper && make all")
+    -- if not exists("include/piper") then
+    --   shell("mkdir include/piper")
+    -- end
+    -- mv("libpiper/build/libpiper.so", "lib/")
+    -- mv("libpiper/src/cpp/*.h*", "include/piper")
+    -- mv("libpiper/src/cpp/utf8/", "include/piper")
+    -- mv("libpiper/install/libpiper.so", "lib/")
+    -- mv("libpiper/install/libpiper_phonemize.so*", "lib/")
+    -- mv("libpiper/install/libonnxruntime.so*", "lib/")
+    -- mv("libpiper/install/libespeak-ng.so*", "lib/")
+    -- mv("libpiper/install/espeak-ng-data", "assets/")
+    -- mv("libpiper/build/pi/include/onnxruntime_c_api.h", "include/piper/")
+    -- mv("libpiper/build/pi/include/onnxruntime_cxx_api.h", "include/piper/")
+    -- mv("libpiper/build/pi/include/onnxruntime_cxx_inline.h", "include/piper/")
+    -- if not exists("include/piper/espeak-ng/") then
+    --   shell("mkdir include/piper/espeak-ng/")
+    -- end
+    -- mv("libpiper/build/pi/include/espeak-ng/speak_lib.h", "include/piper/espeak-ng")
+    -- if not exists("include/piper/piper-phonemize/") then
+    --   shell("mkdir include/piper/piper-phonemize/")
+    -- end
+    -- mv("libpiper/build/pi/include/piper-phonemize/phoneme_ids.hpp", "include/piper/piper-phonemize/")
+    -- mv("libpiper/build/pi/include/piper-phonemize/phonemize.hpp", "include/piper/piper-phonemize/")
+    -- mv("libpiper/build/pi/include/piper-phonemize/shared.hpp", "include/piper/piper-phonemize/")
+    -- mv("libpiper/build/pi/include/piper-phonemize/tashkeel.hpp", "include/piper/piper-phonemize/")
+    -- rm("libpiper")
+    -- rm("piper-phonemize*")
+  elseif TARGET == "WIN" then
+    wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_windows_amd64.zip", "piper.zip")
+    extract("piper.zip")
+    mv("piper", "assets/piper")
   else
     todo()
   end
