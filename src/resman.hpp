@@ -3,6 +3,7 @@
 #define NO_CLAY
 #include "clay.h"
 #include "list.hpp"
+#include "utils.hpp" // for windows compat., ensure this is before raylib
 #include <raylib.h>
 
 using String = list<char>;

@@ -54,7 +54,7 @@ void Proc::launch(const char* ex, char* const* argv)
   si.cb = sizeof(si);
   ZeroMemory( &pi, sizeof(pi) );
   if( !CreateProcess( NULL,   // No module name (use command line)
-      ex,        // Command line
+      (char*)ex,        // Command line
       NULL,           // Process handle not inheritable
       NULL,           // Thread handle not inheritable
       FALSE,          // Set handle inheritance to FALSE

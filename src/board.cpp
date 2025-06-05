@@ -2,10 +2,10 @@
 #include "resman.hpp"
 #include "theme.hpp"
 #include <cassert>
-#include <raylib.h>
 #include "rlclay.h"
 #include "utils.hpp"
 #include "globals.hpp"
+#include <raylib.h>
 
 void Board::serialize(Stream f)
 {

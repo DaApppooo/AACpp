@@ -1,5 +1,6 @@
 #ifndef H_WEBCOLOR
 #define H_WEBCOLOR
+#include "utils.hpp"
 #include <raylib.h> // Just for Color
 
 // enable flag DEBUG to have errors emited

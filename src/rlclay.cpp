@@ -1,3 +1,4 @@
+#include "utils.hpp"
 #include <raylib.h>
 #include <raymath.h>
 #include "stdint.h"

@@ -6,6 +6,7 @@ rlclay.cpp and kept the header a simple header.
 */
 #define NO_CLAY
 #include "clay.h"
+#include "utils.hpp"
 #include <raylib.h>
 #include <raymath.h>
 #include <stdint.h>
