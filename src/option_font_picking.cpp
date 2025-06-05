@@ -1,6 +1,10 @@
+#include "raylib.h"
 #include "settings.hpp"
 #include "theme.hpp"
 #include "option_font_picking.hpp"
+#ifdef _WIN32
+#include "gdiplusgraphics.h"
+#endif
 
 namespace font_picking
 {
@@ -23,8 +27,9 @@ namespace font_picking
                       : (char*)TextFormat(
                        "/usr/share:/usr/local/share:%s/.local/share",
                        getenv("HOME"));
+  #elif defined(_WIN32)
   #else
-  # error init_font_picking for windows, android, ios: TODO
+  # error init_font_picking for android, ios: TODO
   #endif
     available_font_paths.init();
     { // First load packaged font
@@ -41,76 +46,84 @@ namespace font_picking
         fpl.paths[i] = 0; // disown strings
       UnloadDirectoryFiles(fpl);
     }
+    
+    WIN32(
+      // future: will probably use the systemfonts library to to the annoying
+      // part.
+      return;
+    )
 
-    // Then load system fonts
-    char* start = search_dirs;
-    char* end = search_dirs;
-    while (start != nullptr)
-    {
-      while (*end != ':' && *end != 0)
+    LINUX(
+      // Then load system fonts
+      char* start = search_dirs;
+      char* end = search_dirs;
+      while (start != nullptr)
+      {
+        while (*end != ':' && *end != 0)
+          end++;
+        char* const next_start = (*end) ? end+1 : nullptr;
+        *end = 0;
+        FilePathList fpl = LoadDirectoryFilesEx(
+          TextFormat("%s/fonts",start),
+          ".ttf", true
+        );
+        available_font_paths.extend({
+          .start = fpl.paths,
+          .len = fpl.count,
+          .full = fpl.count
+        });
+        for (int i = 0; i < fpl.count; i++)
+          fpl.paths[i] = 0; // disown strings
+        UnloadDirectoryFiles(fpl);
+        start = next_start;
+        if (next_start != nullptr)
+          *end = ':';
         end++;
-      char* const next_start = (*end) ? end+1 : nullptr;
-      *end = 0;
-      FilePathList fpl = LoadDirectoryFilesEx(
-        TextFormat("%s/fonts",start),
-        ".ttf", true
-      );
-      available_font_paths.extend({
-        .start = fpl.paths,
-        .len = fpl.count,
-        .full = fpl.count
-      });
-      for (int i = 0; i < fpl.count; i++)
-        fpl.paths[i] = 0; // disown strings
-      UnloadDirectoryFiles(fpl);
-      start = next_start;
-      if (next_start != nullptr)
-        *end = ':';
-      end++;
-    }
-    available_fonts.prealloc(available_font_paths.len());
-    max_w = 0.f;
-    int len = available_font_paths.len();
-    for (int i = 0; i < len; i++)
-    {
-      const char* name = filename(available_font_paths[i]);
-      if (
-        !isalpha(name[0])
-      || name[1] == 0
-      || !isalpha(name[1])
-      ) {
-        available_font_paths.rmv(i);
-        i--;
-        len--;
-        continue;
       }
-      Font font = LoadFontEx(
-        available_font_paths[i],
-        int(theme::font_size*POPUP_UPSCALE), NULL, 0
-      );
-      if (font.texture.id == 0
-          // || font.baseSize > theme::font_size*UI_UPSCALE
-          || MeasureTextEx(
-              font, name,
-              theme::font_size, theme::TEXT_SPACING
-            ).x < str_len(name)*theme::font_size/3.f
-      ) {
-        UnloadFont(font);
-        available_font_paths.rmv(i);
-        i--;
-        len--;
-        continue;
+      available_fonts.prealloc(available_font_paths.len());
+      max_w = 0.f;
+      int len = available_font_paths.len();
+      for (int i = 0; i < len; i++)
+      {
+        const char* name = filename(available_font_paths[i]);
+        if (
+          !isalpha(name[0])
+        || name[1] == 0
+        || !isalpha(name[1])
+        ) {
+          available_font_paths.rmv(i);
+          i--;
+          len--;
+          continue;
+        }
+        Font font = LoadFontEx(
+          available_font_paths[i],
+          int(theme::font_size*POPUP_UPSCALE), NULL, 0
+        );
+        if (font.texture.id == 0
+            // || font.baseSize > theme::font_size*UI_UPSCALE
+            || MeasureTextEx(
+                font, name,
+                theme::font_size, theme::TEXT_SPACING
+              ).x < str_len(name)*theme::font_size/3.f
+        ) {
+          UnloadFont(font);
+          available_font_paths.rmv(i);
+          i--;
+          len--;
+          continue;
+        }
+        available_fonts.push(font);
+        const float m = MeasureTextEx(
+          available_fonts[i],
+          filename(available_font_paths[i]),
+          theme::font_size*POPUP_UPSCALE,
+          theme::TEXT_SPACING
+        ).x;
+        if (m > max_w)
+          max_w = m;
       }
-      available_fonts.push(font);
-      const float m = MeasureTextEx(
-        available_fonts[i],
-        filename(available_font_paths[i]),
-        theme::font_size*POPUP_UPSCALE,
-        theme::TEXT_SPACING
-      ).x;
-      if (m > max_w)
-        max_w = m;
-    }
+    )
   }
   void destroy(Option&)
   {
