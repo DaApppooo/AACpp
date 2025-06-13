@@ -138,11 +138,11 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
     {
       if (actions[0]._data[0] == '+')
       {
-        tts_push(actions[0]);
+        tts_push(actions[0]._data + 1);
         current_actions.ref(actions);
       }
       else
-        TraceLog(LOG_WARNING, "Non + actions aren't supported yet.");
+        tts_action(actions[0]._data + 1);
     }
   }
   return INVALID_BOARD_INDEX;
