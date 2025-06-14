@@ -5,12 +5,15 @@
 #include "cell.hpp"
 #pragma once
 
+void push_parent_board(board_index_t idx);
+opt_board_index_t pop_parent_board();
+
 struct Board
 {
   // Board Builder usual layout
   int layout_width;
   int layout_height;
-  opt_board_index_t parent;
+  int ssid; // spritesheet id
   
   Cell* cells; // linrect layout (allocated size is width*height)
 

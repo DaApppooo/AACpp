@@ -8,30 +8,23 @@
 
 using String = list<char>;
 extern FILE* source_cobz;
-extern list<Texture> spritesheets;
 extern Clay_TextElementConfig font;
 extern "C"
 { extern Texture btns[5]; }
-extern Ref<list<FixedString>> current_actions;
+extern View<FixedString> current_actions;
 extern "C" {
 void layout_home(Clay_RenderCommandArray& array);
 void layout_options(Clay_RenderCommandArray& array);
 }
 
-struct TexInfo
+void tex_hold(int ssid);
+void tex_drop(int ssid);
+struct TexRect
 {
-  int spritesheet_id;
   Rectangle rect;
-  inline void draw(Rectangle target)
-  {
-    DrawTexturePro(
-      spritesheets[spritesheet_id],
-      rect, target,
-      {0.f, 0.f}, 0.f, WHITE
-    );
-  }
+  void draw(Rectangle target);
 };
-extern list<TexInfo> texs;
+extern list<TexRect> rects;
 
 enum BtnRectId
 {

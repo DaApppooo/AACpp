@@ -36,8 +36,7 @@ namespace font_picking
       );
       available_font_paths.extend({
         .start = fpl.paths,
-        .len = fpl.count,
-        .full = fpl.count
+        .len = fpl.count
       });
       for (int i = 0; i < fpl.count; i++)
         fpl.paths[i] = 0; // disown strings
@@ -66,8 +65,7 @@ namespace font_picking
         );
         available_font_paths.extend({
           .start = fpl.paths,
-          .len = fpl.count,
-          .full = fpl.count
+          .len = fpl.count
         });
         for (int i = 0; i < fpl.count; i++)
           fpl.paths[i] = 0; // disown strings

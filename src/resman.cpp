@@ -16,16 +16,37 @@
 #include "rlclay.h"
 #include "globals.hpp"
 
-list<Texture> spritesheets;
-list<TexInfo> texs;
+Texture ssld; // loaded spritesheet
+list<long> ssfl; // spritesheet file locations
+list<TexRect> rects;
 list<Board> boards;
 Clay_TextElementConfig font;
 extern "C"
 { Texture btns[5]; }
 FILE* source_cobz;
 
-Ref<list<FixedString>> current_actions;
+View<FixedString> current_actions;
 
+void TexRect::draw(Rectangle target)
+{
+  DrawTexturePro(
+    ssld,
+    rect, target,
+    {0.f, 0.f}, 0.f, WHITE
+  );
+}
+
+void tex_hold(int ssid)
+{
+  assert(ssld.id == 0);
+  fseek(source_cobz, ssfl[ssid], SEEK_SET);
+  TextureDumpLoad(ssld, {source_cobz});
+}
+void tex_drop(int ssid)
+{
+  UnloadTexture(ssld);
+  ssld.id = 0;
+}
 
 void TextureDumpLoad(Texture& tex, Stream s)
 {
@@ -43,6 +64,7 @@ void TextureDumpLoad(Texture& tex, Stream s)
   // whole image data and stops before the end. Thus these alignement anchors
   // are necessary (the alignement anchor being "IMG\x00")
   s.align_until_anchor("IMG");
+  fseek(s._f, sizeof(int), SEEK_CUR); // skip board id
 
   ctx = spng_ctx_new(0);
   // temp.data = (s._f, &temp.width, &temp.height, &channels, 0);
@@ -146,40 +168,32 @@ extern
 
 void init_res()
 {
-  spritesheets.init();
-  texs.init();
+  ssld.id = 0;
+  rects.init();
   boards.init();
-  source_cobz = nullptr;
-}
-void reset_res()
-{
-  for (int i = 0; i < spritesheets.len(); i++)
-  {
-    UnloadTexture(spritesheets[i]);
-  }
-  spritesheets.clear();
-  texs.clear();
-  boards.clear();
-}
-
-int res_load_boardset(Ref<Stream> s)
-{
-  assert(sizeof(isize)==8);
-  isize board_count, tex_count;
-
-  source_cobz = s._f; // global set
-
   current_actions.init();
+  source_cobz = nullptr;
 
   btns[BTI_OPT] = LoadTexture("assets/opt.png");
   btns[BTI_BACKSPACE] = LoadTexture("assets/kb.png");
   btns[BTI_CLEAR] = LoadTexture("assets/cl.png");
   btns[BTI_PLAY] = LoadTexture("assets/pa.png");
   btns[BTI_UP] = LoadTexture("assets/au.png");
-  
-  texs.init();
-  boards.init();
+}
+void reset_res()
+{
+  UnloadTexture(ssld);
+  ssld.id = 0;
+  rects.clear();
+  boards.clear();
+  current_actions.init();
+}
 
+int res_load_boardset(Ref<Stream> s)
+{
+  static_assert(sizeof(isize)==8);
+  isize board_count, tex_count;
+  source_cobz = s._f; // global set
   s >> (isize&) board_count;
   boards.prealloc(board_count);
   for (isize i = 0; i < board_count; i++)
@@ -189,17 +203,17 @@ int res_load_boardset(Ref<Stream> s)
     boards.push(b);
   }
 
-  // Rectangles
-  s >> (isize&) tex_count;
-  s >> (isize&) board_count;
-  texs.prealloc(tex_count);
-  fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
-  texs.set_len(tex_count);
+  s >> (isize&) tex_count; // rectangles
+  s >> (isize&) board_count; // spritesheets
+  rects.prealloc(tex_count);
+  fread(rects.data(), sizeof(TexRect), tex_count, s._f);
+  rects.set_len(tex_count);
   // Spritesheets
   const float LOADING_W = 0.1f * XMAX;
   const float LOADING_H = 0.05f * YMAX;
   assert(board_count != 0);
-  spritesheets.prealloc(board_count);
+  ssfl.prealloc(board_count);
+  int board_id = -1;
   for (isize i = 0; i < board_count; i++)
   {
     if (WindowShouldClose())
@@ -221,10 +235,14 @@ int res_load_boardset(Ref<Stream> s)
         },
         SKYBLUE
       );
-      spritesheets.push(Texture{});
-      TextureDumpLoad(spritesheets[-1], s);
+      s.align_until_anchor("IMG");
+      s >> (int&) board_id;
+      boards[board_id].ssid = i;
+      // save before anchor and board id
+      ssfl.push(ftell(source_cobz) - 4 - sizeof(int));
     EndDrawing();
   }
+  tex_hold(boards[0].ssid);
   return EXIT_SUCCESS;
 }
 
@@ -232,16 +250,10 @@ int res_load_boardset(Ref<Stream> s)
 void destroy_res()
 {
   UnloadFont(theme::fonts[0]);
-  const isize l = spritesheets.len();
-  for (isize i = 0; i < l; i++)
-  {
-    UnloadTexture(spritesheets[i]);
-  }
+  UnloadTexture(ssld);
   if (source_cobz)
-  {
     fclose(source_cobz);
-  }
-  spritesheets.destroy();
-  texs.destroy();
+  ssfl.destroy();
+  rects.destroy();
   boards.destroy();
 }

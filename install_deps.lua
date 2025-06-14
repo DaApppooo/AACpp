@@ -58,7 +58,7 @@ end
 function _inst_zlib()
   print("Downloadn, compile and move zlib...")
   if TARGET == "LINUX" then
-    if os.execute("printf '#include <zlib.h>\nint main() {return 0;}' | gcc -cx - -o _test") then
+    if os.execute("printf '#include <zlib.h>\nint main() {return 0;}' | gcc -xc - -o _test") then
       rm("_test")
       print("ZLIB dev files were found. Skipping compilation.")
       return
@@ -202,10 +202,10 @@ function inst_obz2cobz()
   shell("git clone --recursive https://github.com/LibreAAC/obz2cobz.git")
   if TARGET == "WIN" then
     shell("; cd obz2cobz ; lua install_deps.lua target=WIN")
-    shell("; cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target=WIN")
+    shell("; cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target=WIN final")
   else
     shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
-    shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
+    shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ final target="..TARGET)
   end
   mv("obz2cobz/bin/*", "assets/")
   mv("obz2cobz/lib/*", "lib/obz2cobz/")

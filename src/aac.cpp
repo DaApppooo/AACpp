@@ -18,7 +18,6 @@
 
 inline void board_update(
   Clay_RenderCommandArray& render_cmds,
-  opt_board_index_t& opt_new_board,
   board_index_t& current
 );
 
@@ -37,7 +36,6 @@ int main()
   uint64_t clay_req_mem;
   void* allocated_mem;
   board_index_t current = 0;
-  opt_board_index_t opt_new_board;
 
   {
     InitAudioDevice();
@@ -49,6 +47,7 @@ int main()
     YMAX = GetScreenHeight();
   }
 
+  init_res();
   init_tts();
   init_logging();
   if ((failure_reason = settings_load()))
@@ -86,7 +85,7 @@ int main()
     if (settings_open)
       settings_update(render_cmds);
     else
-      board_update(render_cmds, opt_new_board, current);
+      board_update(render_cmds, current);
     Clay_SetDebugModeEnabled(clay_debug);
 
     if (IsKeyPressed(KEY_D))
@@ -113,10 +112,10 @@ SAFELY_EXIT:
 
 inline void board_update(
   Clay_RenderCommandArray& render_cmds,
-  opt_board_index_t& opt_new_board,
   board_index_t& current
 ) {
   static bool debug = false;
+  opt_board_index_t opt_new_board;
   Clay_SetDebugModeEnabled(debug);
   if (IsKeyPressed(KEY_D))
     debug = ! debug;
@@ -154,10 +153,14 @@ inline void board_update(
   {
     if (Clay_PointerOver(CLAY_ID("btn_parent")))
     {
-      if (is_board_index(board_with_index(current).parent))
+      opt_new_board = pop_parent_board();
+      if (is_board_index(opt_new_board))
       {
-        current = board_with_index(current).parent;
+        tex_drop(board_with_index(current).ssid);
+        current = opt_new_board;
         current_actions.init();
+        opt_new_board = INVALID_BOARD_INDEX;
+        tex_hold(board_with_index(current).ssid);
       }
     }
     if (Clay_PointerOver(CLAY_ID("btn_options")))
@@ -184,7 +187,10 @@ inline void board_update(
   }
   if (is_board_index(opt_new_board))
   {
+    tex_drop(board_with_index(current).ssid);
+    push_parent_board(current);
     current = opt_new_board;
+    tex_hold(board_with_index(current).ssid);
   }
 }
 
