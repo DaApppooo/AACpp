@@ -48,6 +48,25 @@ void tex_drop(int ssid)
   ssld.id = 0;
 }
 
+void CheckOpenGLError(const char* stmt, const char* fname, int line)
+{
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR)
+    {
+        printf("OpenGL error %08x, at %s:%i - for %s\n", err, fname, line, stmt);
+        abort();
+    }
+}
+
+#ifdef _DEBUG
+    #define GL_CHECK(stmt) do { \
+            stmt; \
+            CheckOpenGLError(#stmt, __FILE__, __LINE__); \
+        } while (0)
+#else
+    #define GL_CHECK(stmt) stmt
+#endif
+
 void TextureDumpLoad(Texture& tex, Stream s)
 {
   char buf[4];
@@ -105,11 +124,11 @@ void TextureDumpLoad(Texture& tex, Stream s)
   }
   spng_ctx_free(ctx);
   
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glGenTextures(1, &id);
-  glBindTexture(GL_TEXTURE_2D, id);
-  glTexImage2D(
+  GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+  GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+  GL_CHECK(glGenTextures(1, &id));
+  GL_CHECK(glBindTexture(GL_TEXTURE_2D, id));
+  GL_CHECK(glTexImage2D(
     GL_TEXTURE_2D,
     0,
     GL_RGBA,
@@ -119,15 +138,15 @@ void TextureDumpLoad(Texture& tex, Stream s)
     GL_RGBA,
     GL_UNSIGNED_BYTE,
     data
-   );
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  ));
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
   LINUX(
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
+    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE));
   )
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glBindTexture(GL_TEXTURE_2D, 0);
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+  GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
   tex.id = id;
   tex.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
