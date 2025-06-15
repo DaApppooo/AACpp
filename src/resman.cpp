@@ -78,13 +78,6 @@ void TextureDumpLoad(Texture& tex, Stream s)
   void* data = nullptr;
   unsigned int id = 0;
 
-  tex.id = tex.height = tex.width = 0;
-  // Here is some weird shenanigans because libspng doesn't seem to read the
-  // whole image data and stops before the end. Thus these alignement anchors
-  // are necessary (the alignement anchor being "IMG\x00")
-  s.align_until_anchor("IMG");
-  fseek(s._f, sizeof(int), SEEK_CUR); // skip board id
-
   ctx = spng_ctx_new(0);
   // temp.data = (s._f, &temp.width, &temp.height, &channels, 0);
   spngerr = spng_set_png_file(ctx, s._f);
@@ -123,39 +116,48 @@ void TextureDumpLoad(Texture& tex, Stream s)
     goto error;
   }
   spng_ctx_free(ctx);
-  
-  GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
-  GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-  GL_CHECK(glGenTextures(1, &id));
-  GL_CHECK(glBindTexture(GL_TEXTURE_2D, id));
-  GL_CHECK(glTexImage2D(
-    GL_TEXTURE_2D,
-    0,
-    GL_RGBA,
-    ihdr.width,
-    ihdr.height,
-    0,
-    GL_RGBA,
-    GL_UNSIGNED_BYTE,
-    data
-  ));
-  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-  LINUX(
-    GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE));
-  )
-  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
-  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
-  GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
-  tex.id = id;
-  tex.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-  tex.height = ihdr.height;
-  tex.width  = ihdr.width;
-  tex.mipmaps = 1;
+  Image img;
+  img.data = data;
+  img.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+  img.height = ihdr.height;
+  img.width = ihdr.width;
+  img.mipmaps = 1;
+
+  tex = LoadTextureFromImage(img);
+  UnloadImage(img);
+  data = nullptr;
   
-  if (data != nullptr)
-    free(data);
+  // GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+  // GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+  // GL_CHECK(glGenTextures(1, &id));
+  // GL_CHECK(glBindTexture(GL_TEXTURE_2D, id));
+  // GL_CHECK(glTexImage2D(
+  //   GL_TEXTURE_2D,
+  //   0,
+  //   GL_RGBA,
+  //   ihdr.width,
+  //   ihdr.height,
+  //   0,
+  //   GL_RGBA,
+  //   GL_UNSIGNED_BYTE,
+  //   data
+  // ));
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+  // LINUX(
+  //   GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE));
+  // )
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+  // GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+
+  // tex.id = id;
+  // tex.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+  // tex.height = ihdr.height;
+  // tex.width  = ihdr.width;
+  // tex.mipmaps = 1;
+  
   if (tex.id > 0)
   {
     TraceLog(LOG_INFO, "Successfuly loaded one image from file !");
@@ -257,8 +259,12 @@ int res_load_boardset(Ref<Stream> s)
       s.align_until_anchor("IMG");
       s >> (int&) board_id;
       boards[board_id].ssid = i;
-      // save before anchor and board id
-      ssfl.push(ftell(source_cobz) - 4 - sizeof(int));
+      s >> (int&) board_id;
+      const long pos = ftell(source_cobz);
+      // skip image data to avoid finding a fake "IMG" anchor in the image data
+      fseek(s._f, board_id, SEEK_CUR);
+      // save right at the begining of the image data
+      ssfl.push(pos);
     EndDrawing();
   }
   tex_hold(boards[0].ssid);
