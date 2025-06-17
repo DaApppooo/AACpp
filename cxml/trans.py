@@ -71,7 +71,7 @@ class FieldBuilder:
       return self._dct[name] + ','
     else:
       return ""
-  def func(self, key, fmt: str | Callable[str, [str]]):
+  def func(self, key, fmt: str | Callable[[str], str]):
     if '.' in key:
       base, particle = key.split('.',1)
       if base in self._dct:

@@ -36,7 +36,7 @@ inline int atou8(const char* p)
     return -1;
   char* endp;
   int norm_out = -1; // between -1 and 255
-  float v = strtof32(p, &endp);
+  float v = strtof(p, &endp);
   if (endp == p)
     return -1;
   while (*p != 0)

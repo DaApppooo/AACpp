@@ -102,7 +102,7 @@ function inst_raylib()
     shell("cd raylib/src && make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
     mv("raylib/src/libraylib.so*", "lib/")
   elseif TARGET == "WIN" then
-    shell("; cd raylib/src ; make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
+    shell("cd raylib\\src ; make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED")
     mv("raylib/src/raylib.dll", "lib/")
   else
     todo()
@@ -130,10 +130,10 @@ function inst_iniparser()
     end
     shell("git clone https://gitlab.com/iniparser/iniparser.git")
     mkdir("iniparser/build")
-    shell("; cd iniparser/build ; cmake -DBUILD_STATIC_LIBS=OFF .. "..CMAKE_FLAGS.." ; make all")
+    shell("cd iniparser\\build ; cmake -DBUILD_STATIC_LIBS=OFF .. "..CMAKE_FLAGS.." ; make all")
     mv("iniparser/build/*.dll*", "lib/")
     mv("iniparser/src/*.h", "include/")
-    rm("iniparser")
+    -- rm("iniparser")
   else
     todo()
   end
@@ -201,8 +201,8 @@ function inst_obz2cobz()
   ensure_folder("'lib/obz2cobz'")
   shell("git clone --recursive https://github.com/LibreAAC/obz2cobz.git")
   if TARGET == "WIN" then
-    shell("; cd obz2cobz ; lua install_deps.lua target=WIN")
-    shell("; cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target=WIN")
+    shell("cd obz2cobz ; lua install_deps.lua target=WIN")
+    shell("cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target=WIN")
   else
     shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
     shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
@@ -215,5 +215,6 @@ end
 run_install_scripts()
 if TARGET == "WIN" then
   mv("lib/*.dll", "bin")
+  mv("lib/obz2cobz/*.dll", "assets")
 end
 

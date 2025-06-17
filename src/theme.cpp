@@ -1,6 +1,5 @@
 #include "theme.hpp"
 #include "clay.h"
-#include "webcolor.hpp"
 #include <cctype>
 #include <cstdlib>
 #include "utils.hpp" // needed for windows. provide compat between headers

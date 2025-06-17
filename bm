@@ -11,15 +11,15 @@ FLAG_DEBUG = 1
 VERBOSE = True
 CC = "g++"
 SRC_PATH = "src"
-CFLAGS = f"-std=c++20 -fsanitize=address -D FILE_DIALOG -I include -I src/shared -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
+CFLAGS = f"-std=c++20 -D FILE_DIALOG -I cxml -I include -I src/shared -I {SRC_PATH} -g" + ("" if not FLAG_DEBUG else " -D DEBUG")
 if platform.system() == "Windows":
 	LFLAGS = """
-	-Llib -Lbin -lraylib -lspng -liniparser -lui -lpthread -lz
+	-Llib -Lbin -lraylib -lspng -liniparser -lpthread -lz
 	""".replace('\n', ' ')
 else:
 	LFLAGS = (
 	"""
-	-Llib -lnfd -lraylib -lspng -liniparser -lui -dynamic
+	-Llib -lnfd -lraylib -lspng -liniparser -dynamic
 	-lGL -lm -lpthread -ldl -lrt -lX11 -lz
 	-dynamic `pkg-config --cflags --libs gtk+-3.0`
 	""".replace('\n', ' ')
@@ -31,6 +31,12 @@ CONFIG = "config/bm.json" # Same here
 EXT = ".cpp"
 CXML = "cxml"
 EXAMPLE = "./bin/aac"
+SHARED_EXT = ".so"
+BIN_EXT = ""
+if platform.system() == "Windows":
+	SHARED_EXT = ".dll"
+	BIN_EXT = ".exe"
+
 
 pwd = __file__.rsplit(path.sep,1)[0]
 def rls(path_, filter = lambda x: True):
@@ -95,7 +101,7 @@ def link_all(cflags = ""):
 	j = " ".join(rls(OBJ_PATH, lambda x: x[-2:] == ".o"))
 	if not j:
 		raise Exception("Wtf ???")
-	if code := shell(f"{CC} {j} -o {BIN} {CFLAGS} {cflags} {LFLAGS}"):
+	if code := shell(f"{CC} {j} -o {BIN}{BIN_EXT} {CFLAGS} {cflags} {LFLAGS}"):
 		yeet(code)
 def run_example():
 	if code := shell(f"LD_LIBRARY_PATH={LIB_DIR} {EXAMPLE}"):
@@ -138,12 +144,11 @@ if __name__ == "__main__":
 
 	match argv[1]:
 		case "cxml":
-			for i in rls("cxml", lambda x: x.endswith(".cxml")):
+			for i in rls(CXML, lambda x: x.endswith(".cxml")):
 				if err := shell(f"python3 cxml/trans.py {i}"):
 					yeet(err)
-			if err := shell(f"g++ -fPIC -o cxml/ui.so {CFLAGS} -shared {CXML}/*.cpp"):
-				yeet(1)
-			rename("cxml/ui.so", "lib/libui.so")
+			for i in rls(CXML, lambda x: x.endswith(".cpp")):
+				rename(i, "src/" + i.split('/',1)[1])
 		case "all":
 			r = compile_all(check_ch_time=False, cflags="-O0")
 			with open("compile_commands.json", "w") as f:

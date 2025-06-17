@@ -5,7 +5,8 @@ https://github.com/inventordave2/IFileDialog-gcc-Fix/blob/main/ifiledialog.h
 */
 #ifndef _IFileDialog_Fix_ID
 #define _IFileDialog_Fix_ID
-#include <windows.h>
+#include <shobjidl.h>
+#include <Windows.h>
 
 // 'shobjidl.h' line: 25174
 typedef enum FDAP {
