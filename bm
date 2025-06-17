@@ -15,6 +15,9 @@ CFLAGS = f"-std=c++20 -D FILE_DIALOG -I cxml -I include -I src/shared -I {SRC_PA
 if platform.system() == "Windows":
 	LFLAGS = """
 	-Llib -Lbin -lraylib -lspng -liniparser -lpthread -lz
+	-lopengl32
+	-static-libgcc -static-libstdc++
+	-ole32 -luuid
 	""".replace('\n', ' ')
 else:
 	LFLAGS = (
