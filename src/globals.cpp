@@ -11,21 +11,22 @@ namespace ctrl
   fvec2 click_pos;
   float move_amount_since_clicked;
   float dead_click = 0.f;
+  bool _clicked = false;
+  bool _spring = true;
   bool clicked()
   {
-    return IsMouseButtonReleased(MOUSE_LEFT_BUTTON)
-       && move_amount_since_clicked < 5.f
-       && dead_click <= 0.f;
+    return _clicked;
   }
   void clear_input()
   {
-    dead_click = 0.1f;
+    // dead_click = 0.1f;
   }
   float delta_scroll()
   {
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
-      return -mdpos.y;
-    return 0.f;
+    // if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+    //   return -mdpos.y;
+    // return 0.f;
+    return GetMouseWheelMove() * -30;
   }
   float delta_scroll_in(Rectangle r)
   {
@@ -39,19 +40,34 @@ namespace ctrl
   {
     mpos = GetMousePosition();
     dt = GetFrameTime();
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    {
+      if (_spring)
+      {
+        _clicked = true;
+        _spring = false;
+      }
+      else
+        _clicked = false;
+    }
+    else
+    {
+      _spring = true;
+      _clicked = false;
+    }
     if (dead_click > 0.f)
       dead_click -= dt;
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-    {
-      move_amount_since_clicked = 0.f;
-      click_pos = mpos;
-    }
-    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
-    {
-      click_pos = {-1.f, -1.f};
-    }
+    // if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    // {
+    //   move_amount_since_clicked = 0.f;
+    //   click_pos = mpos;
+    // }
+    // if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+    // {
+    //   click_pos = {-1.f, -1.f};
+    // }
     mdpos = GetMouseDelta();
-    move_amount_since_clicked += Vector2Length(mdpos);
+    // move_amount_since_clicked += Vector2Length(mdpos);
   }
 }
 

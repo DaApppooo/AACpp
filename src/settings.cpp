@@ -308,46 +308,48 @@ const char* settings_try_pick_and_load_board()
 {
   PickAndLoadResult res;
   res = settings_try_once_pick_board(true);
-  while (res.error != PickAndLoadResult::OK && !WindowShouldClose())
-  {
-    while (!WindowShouldClose())
-    {
-      if (ctrl::clicked())
-        break;
-      BeginDrawing();
-        ClearBackground(~theme::background_color);
-        const char* msg;
-        switch (res.error)
-        {
-          case PickAndLoadResult::OK:
-            break;
-          case PickAndLoadResult::CANNOT_OPEN_FILE:
-            msg = "Could not open file.";
-            break;
-          case PickAndLoadResult::WRONG_FILE_FORMAT:
-    msg = "Wrong file format. '.obz' or '.cobz' file format is needed.";
-            break;
-          case PickAndLoadResult::COMPILATION_ERROR:
-            msg = "Could not compile file. Check logs for more info.";
-            break;
-        }
-        DrawTextEx(
-          font_array[0],
-          msg,
-          {0,0}, theme::font_size, theme::text_space_width,
-          ~theme::text_color
-        );
-        DrawTextEx(
-          font_array[0],
-          "Touch the screen to try again.",
-          {0,float(theme::font_size)},
-          theme::font_size, theme::text_space_width,
-          ~theme::text_color
-        );
-      EndDrawing();
-    }
-    res = settings_try_once_pick_board(true);
-  }
+  if (res.error != PickAndLoadResult::OK)
+    return "Error";
+  // while (res.error != PickAndLoadResult::OK && !WindowShouldClose())
+  // {
+  //   while (!WindowShouldClose())
+  //   {
+  //     if (ctrl::clicked())
+  //       break;
+  //     BeginDrawing();
+  //       ClearBackground(~theme::background_color);
+  //       const char* msg;
+  //       switch (res.error)
+  //       {
+  //         case PickAndLoadResult::OK:
+  //           break;
+  //         case PickAndLoadResult::CANNOT_OPEN_FILE:
+  //           msg = "Could not open file.";
+  //           break;
+  //         case PickAndLoadResult::WRONG_FILE_FORMAT:
+  //   msg = "Wrong file format. '.obz' or '.cobz' file format is needed.";
+  //           break;
+  //         case PickAndLoadResult::COMPILATION_ERROR:
+  //           msg = "Could not compile file. Check logs for more info.";
+  //           break;
+  //       }
+  //       DrawTextEx(
+  //         font_array[0],
+  //         msg,
+  //         {0,0}, theme::font_size, theme::text_space_width,
+  //         ~theme::text_color
+  //       );
+  //       DrawTextEx(
+  //         font_array[0],
+  //         "Touch the screen to try again.",
+  //         {0,float(theme::font_size)},
+  //         theme::font_size, theme::text_space_width,
+  //         ~theme::text_color
+  //       );
+  //     EndDrawing();
+  //   }
+  //   res = settings_try_once_pick_board(true);
+  // }
   source_cobz = res.f._f;
   reset_res();
   current_options = -1;

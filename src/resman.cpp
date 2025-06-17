@@ -16,16 +16,56 @@
 #include "rlclay.h"
 #include "globals.hpp"
 
-list<Texture> spritesheets;
-list<TexInfo> texs;
+Texture ssld; // loaded spritesheet
+list<long> ssfl; // spritesheet file locations
+list<TexRect> rects;
 list<Board> boards;
 Clay_TextElementConfig font;
 extern "C"
 { Texture btns[5]; }
 FILE* source_cobz;
 
-Ref<list<FixedString>> current_actions;
+View<FixedString> current_actions;
 
+void TexRect::draw(Rectangle target)
+{
+  DrawTexturePro(
+    ssld,
+    rect, target,
+    {0.f, 0.f}, 0.f, WHITE
+  );
+}
+
+void tex_hold(int ssid)
+{
+  assert(ssld.id == 0);
+  fseek(source_cobz, ssfl[ssid], SEEK_SET);
+  TextureDumpLoad(ssld, {source_cobz});
+}
+void tex_drop(int ssid)
+{
+  UnloadTexture(ssld);
+  ssld.id = 0;
+}
+
+void CheckOpenGLError(const char* stmt, const char* fname, int line)
+{
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR)
+    {
+        printf("OpenGL error %08x, at %s:%i - for %s\n", err, fname, line, stmt);
+        abort();
+    }
+}
+
+#ifdef _DEBUG
+    #define GL_CHECK(stmt) do { \
+            stmt; \
+            CheckOpenGLError(#stmt, __FILE__, __LINE__); \
+        } while (0)
+#else
+    #define GL_CHECK(stmt) stmt
+#endif
 
 void TextureDumpLoad(Texture& tex, Stream s)
 {
@@ -37,12 +77,6 @@ void TextureDumpLoad(Texture& tex, Stream s)
   spng_ihdr ihdr;
   void* data = nullptr;
   unsigned int id = 0;
-
-  tex.id = tex.height = tex.width = 0;
-  // Here is some weird shenanigans because libspng doesn't seem to read the
-  // whole image data and stops before the end. Thus these alignement anchors
-  // are necessary (the alignement anchor being "IMG\x00")
-  s.align_until_anchor("IMG");
 
   ctx = spng_ctx_new(0);
   // temp.data = (s._f, &temp.width, &temp.height, &channels, 0);
@@ -82,39 +116,48 @@ void TextureDumpLoad(Texture& tex, Stream s)
     goto error;
   }
   spng_ctx_free(ctx);
-  
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glGenTextures(1, &id);
-  glBindTexture(GL_TEXTURE_2D, id);
-  glTexImage2D(
-    GL_TEXTURE_2D,
-    0,
-    GL_RGBA,
-    ihdr.width,
-    ihdr.height,
-    0,
-    GL_RGBA,
-    GL_UNSIGNED_BYTE,
-    data
-   );
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  LINUX(
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
-  )
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glBindTexture(GL_TEXTURE_2D, 0);
 
-  tex.id = id;
-  tex.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-  tex.height = ihdr.height;
-  tex.width  = ihdr.width;
-  tex.mipmaps = 1;
+  Image img;
+  img.data = data;
+  img.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+  img.height = ihdr.height;
+  img.width = ihdr.width;
+  img.mipmaps = 1;
+
+  tex = LoadTextureFromImage(img);
+  UnloadImage(img);
+  data = nullptr;
   
-  if (data != nullptr)
-    free(data);
+  // GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+  // GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+  // GL_CHECK(glGenTextures(1, &id));
+  // GL_CHECK(glBindTexture(GL_TEXTURE_2D, id));
+  // GL_CHECK(glTexImage2D(
+  //   GL_TEXTURE_2D,
+  //   0,
+  //   GL_RGBA,
+  //   ihdr.width,
+  //   ihdr.height,
+  //   0,
+  //   GL_RGBA,
+  //   GL_UNSIGNED_BYTE,
+  //   data
+  // ));
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+  // LINUX(
+  //   GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE));
+  // )
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+  // GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+  // GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+
+  // tex.id = id;
+  // tex.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+  // tex.height = ihdr.height;
+  // tex.width  = ihdr.width;
+  // tex.mipmaps = 1;
+  
   if (tex.id > 0)
   {
     TraceLog(LOG_INFO, "Successfuly loaded one image from file !");
@@ -146,40 +189,32 @@ extern
 
 void init_res()
 {
-  spritesheets.init();
-  texs.init();
+  ssld.id = 0;
+  rects.init();
   boards.init();
-  source_cobz = nullptr;
-}
-void reset_res()
-{
-  for (int i = 0; i < spritesheets.len(); i++)
-  {
-    UnloadTexture(spritesheets[i]);
-  }
-  spritesheets.clear();
-  texs.clear();
-  boards.clear();
-}
-
-int res_load_boardset(Ref<Stream> s)
-{
-  assert(sizeof(isize)==8);
-  isize board_count, tex_count;
-
-  source_cobz = s._f; // global set
-
   current_actions.init();
+  source_cobz = nullptr;
 
   btns[BTI_OPT] = LoadTexture("assets/opt.png");
   btns[BTI_BACKSPACE] = LoadTexture("assets/kb.png");
   btns[BTI_CLEAR] = LoadTexture("assets/cl.png");
   btns[BTI_PLAY] = LoadTexture("assets/pa.png");
   btns[BTI_UP] = LoadTexture("assets/au.png");
-  
-  texs.init();
-  boards.init();
+}
+void reset_res()
+{
+  UnloadTexture(ssld);
+  ssld.id = 0;
+  rects.clear();
+  boards.clear();
+  current_actions.init();
+}
 
+int res_load_boardset(Ref<Stream> s)
+{
+  static_assert(sizeof(isize)==8);
+  isize board_count, tex_count;
+  source_cobz = s._f; // global set
   s >> (isize&) board_count;
   boards.prealloc(board_count);
   for (isize i = 0; i < board_count; i++)
@@ -189,17 +224,17 @@ int res_load_boardset(Ref<Stream> s)
     boards.push(b);
   }
 
-  // Rectangles
-  s >> (isize&) tex_count;
-  s >> (isize&) board_count;
-  texs.prealloc(tex_count);
-  fread(texs.data(), sizeof(TexInfo), tex_count, s._f);
-  texs.set_len(tex_count);
+  s >> (isize&) tex_count; // rectangles
+  s >> (isize&) board_count; // spritesheets
+  rects.prealloc(tex_count);
+  fread(rects.data(), sizeof(TexRect), tex_count, s._f);
+  rects.set_len(tex_count);
   // Spritesheets
   const float LOADING_W = 0.1f * XMAX;
   const float LOADING_H = 0.05f * YMAX;
   assert(board_count != 0);
-  spritesheets.prealloc(board_count);
+  ssfl.prealloc(board_count);
+  int board_id = -1;
   for (isize i = 0; i < board_count; i++)
   {
     if (WindowShouldClose())
@@ -221,10 +256,18 @@ int res_load_boardset(Ref<Stream> s)
         },
         SKYBLUE
       );
-      spritesheets.push(Texture{});
-      TextureDumpLoad(spritesheets[-1], s);
+      s.align_until_anchor("IMG");
+      s >> (int&) board_id;
+      boards[board_id].ssid = i;
+      s >> (int&) board_id;
+      const long pos = ftell(source_cobz);
+      // skip image data to avoid finding a fake "IMG" anchor in the image data
+      fseek(s._f, board_id, SEEK_CUR);
+      // save right at the begining of the image data
+      ssfl.push(pos);
     EndDrawing();
   }
+  tex_hold(boards[0].ssid);
   return EXIT_SUCCESS;
 }
 
@@ -232,16 +275,10 @@ int res_load_boardset(Ref<Stream> s)
 void destroy_res()
 {
   UnloadFont(theme::fonts[0]);
-  const isize l = spritesheets.len();
-  for (isize i = 0; i < l; i++)
-  {
-    UnloadTexture(spritesheets[i]);
-  }
+  UnloadTexture(ssld);
   if (source_cobz)
-  {
     fclose(source_cobz);
-  }
-  spritesheets.destroy();
-  texs.destroy();
+  ssfl.destroy();
+  rects.destroy();
   boards.destroy();
 }

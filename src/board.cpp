@@ -7,11 +7,23 @@
 #include "globals.hpp"
 #include <raylib.h>
 
+list<board_index_t> parents;
+void push_parent_board(board_index_t idx)
+{
+  parents.push(idx);
+}
+opt_board_index_t pop_parent_board()
+{
+  if (parents.len() > 0)
+    return parents.pop();
+  else
+    return INVALID_BOARD_INDEX;
+}
+
 void Board::serialize(Stream f)
 {
   f << (int&) layout_width;
   f << (int&) layout_height;
-  f << (int&) parent;
   for (int i = 0; i < layout_width*layout_height; i++)
   {
     cells[i].serialize(f);
@@ -23,7 +35,6 @@ void Board::deserialize(Stream f)
   f.check_anchor("BRD");
   f >> (int&) layout_width;
   f >> (int&) layout_height;
-  f >> (int&) parent;
   cells = (Cell*)malloc(sizeof(Cell)*layout_width*layout_height);
   for (int i = 0; i < layout_width*layout_height; i++)
   {
@@ -37,7 +48,7 @@ void Board::draw()
   {
     // Draw actions
     float x = theme::gpad;
-    for (int i = 0; i < current_actions.len(); i++)
+    for (int i = 0; i < current_actions.len; i++)
     {
       if (current_actions[i]._data[0] != '+')
       {

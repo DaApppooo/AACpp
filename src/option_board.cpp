@@ -24,7 +24,7 @@ namespace current_board
       path,
       {1.f, 1.f},
       {box.x+box.width, box.y+box.height},
-      theme::font_size/2.f,
+      theme::font_size/1.5f,
       theme::TEXT_SPACING,
       fade((~theme::text_color), 0.5f)
     );
@@ -37,32 +37,13 @@ namespace default_board
   { strncpy(path, p, 1024); }
   void init(Option& self)
   {
-    PickAndLoadResult res = settings_try_once_pick_board(false);
-    const char* mod = nullptr;
-    switch (res.error)
-    {
-      case PickAndLoadResult::COMPILATION_ERROR:
-        TraceLog(LOG_ERROR, "Failed to compile board (should not happen in this state).");
-        break;
-      case PickAndLoadResult::CANNOT_OPEN_FILE:
-        TraceLog(LOG_ERROR, "Cannot open file.");
-        break;
-      case PickAndLoadResult::WRONG_FILE_FORMAT:
-        TraceLog(LOG_ERROR, "Wrong file format. Expected '.obz' or '.cobz'.");
-        break;
-      case PickAndLoadResult::OK:
-        mod = res.path;
-        break;
-    }
-    if (mod)
-      set_path(mod);
-    current_options = -1;
+    set_path(current_board::path);
   }
   void mainbox(Option& self, Rectangle box)
   {
     DrawTextEx(
       theme::fonts[0],
-      "Change default board (loaded at startup)",
+      "Set default board to be the current one.",
       {box.x+theme::gpad, box.y+box.height/2.f-theme::font_size},
       theme::font_size, theme::TEXT_SPACING,
       ~theme::text_color
@@ -72,7 +53,7 @@ namespace default_board
       path,
       {1.f, 1.f},
       {box.x+box.width, box.y+box.height},
-      theme::font_size/2.f,
+      theme::font_size/1.5f,
       theme::TEXT_SPACING,
       fade((~theme::text_color), 0.5f)
     );

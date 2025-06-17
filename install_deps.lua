@@ -58,7 +58,7 @@ end
 function _inst_zlib()
   print("Downloadn, compile and move zlib...")
   if TARGET == "LINUX" then
-    if os.execute("printf '#include <zlib.h>\nint main() {return 0;}' | gcc -cx - -o _test") then
+    if os.execute("printf '#include <zlib.h>\nint main() {return 0;}' | gcc -xc - -o _test") then
       rm("_test")
       print("ZLIB dev files were found. Skipping compilation.")
       return
@@ -110,7 +110,7 @@ function inst_raylib()
   mv("raylib/src/raylib.h", "include/")
   mv("raylib/src/raymath.h", "include/")
   mv("raylib/src/rlgl.h", "include/")
-  -- rm("raylib/")
+  rm("raylib/")
 end
 function inst_iniparser()
   print("Download, compile and move iniParser 4...")
@@ -143,6 +143,7 @@ function inst_piper()
   if TARGET == "LINUX" then
     wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_linux_$(uname -m).tar.gz", "piper.tar.gz")
     extract("piper.tar.gz")
+    if exists("assets/piper") then rm("assets/piper") end
     mv("piper", "assets/piper")
     rm("piper.tar.gz")
     
@@ -187,6 +188,7 @@ function inst_piper()
   elseif TARGET == "WIN" then
     wget("https://github.com/rhasspy/piper/releases/download/"..PIPER_VERSION.."/piper_windows_amd64.zip", "piper.zip")
     extract("piper.zip")
+    if exists("assets/piper") then rm("assets/piper") end
     mv("piper", "assets/piper")
     rm("piper.zip")
   else
@@ -201,11 +203,11 @@ function inst_obz2cobz()
   ensure_folder("'lib/obz2cobz'")
   shell("git clone --recursive https://github.com/LibreAAC/obz2cobz.git")
   if TARGET == "WIN" then
-    shell("cd obz2cobz ; lua install_deps.lua target=WIN")
-    shell("cd obz2cobz ; lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target=WIN")
+    shell("cd obz2cobz ; lua install_deps.lua final target=WIN")
+    shell("cd obz2cobz ; lua build.lua final LD_LIBRARY_PATH=lib/obz2cobz/ target=WIN")
   else
     shell("cd obz2cobz && lua install_deps.lua target="..TARGET)
-    shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ target="..TARGET)
+    shell("cd obz2cobz && lua build.lua LD_LIBRARY_PATH=lib/obz2cobz/ final target="..TARGET)
   end
   mv("obz2cobz/bin/*", "assets/")
   mv("obz2cobz/lib/*", "lib/obz2cobz/")

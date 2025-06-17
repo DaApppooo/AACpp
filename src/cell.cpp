@@ -94,11 +94,11 @@ void Cell::draw(const Board& board, int x, int y) const
   }
   if (tex_id != -1)
   {
-    const float ratio = texs[tex_id].rect.width/texs[tex_id].rect.height;
+    const float ratio = rects[tex_id].rect.width/rects[tex_id].rect.height;
     float height = (rect.height-txtm.y-theme::gpad);
     if (ratio*height > rect.width)
       height = rect.width/ratio;
-    texs[tex_id].draw(
+    rects[tex_id].draw(
       {
         rect.x + rect.width/2.f - (ratio*(rect.height-txtm.y-theme::gpad))/2.f,
         rect.y + theme::gpad,
@@ -138,11 +138,11 @@ opt_board_index_t Cell::update(const Board& board, int x, int y) {
     {
       if (actions[0]._data[0] == '+')
       {
-        tts_push(actions[0]);
-        current_actions.ref(actions);
+        tts_push(actions[0]._data + 1);
+        current_actions = actions.to_view();
       }
       else
-        TraceLog(LOG_WARNING, "Non + actions aren't supported yet.");
+        tts_action(actions[0]._data + 1);
     }
   }
   return INVALID_BOARD_INDEX;
